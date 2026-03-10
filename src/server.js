@@ -10,6 +10,7 @@ import { mockPlan } from "./mock-plan.js";
 import { generateSvg } from "./svg-renderer.js";
 
 const PORT = process.env.PORT || 3000;
+server.listen(PORT)
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
