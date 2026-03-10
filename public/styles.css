@@ -1,0 +1,280 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #eef2f6;
+  color: #1f2937;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 560px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: #ffffff;
+  border-right: 1px solid #d9e2ec;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.sub {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.45;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+textarea {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 14px;
+  font-family: Menlo, Monaco, monospace;
+  font-size: 13px;
+  line-height: 1.45;
+  outline: none;
+  background: #f8fafc;
+  resize: vertical;
+}
+
+textarea:focus {
+  border-color: #3b82f6;
+  background: #ffffff;
+}
+
+#promptInput {
+  min-height: 130px;
+}
+
+#jsonInput {
+  min-height: 330px;
+}
+
+.grid2,
+.grid3 {
+  display: grid;
+  gap: 10px;
+}
+
+.grid2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.grid3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+button {
+  border: none;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease, transform 0.05s ease;
+}
+
+button:hover {
+  opacity: 0.95;
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.primary {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.secondary {
+  background: #e2e8f0;
+  color: #111827;
+}
+
+.warning {
+  background: #f59e0b;
+  color: #111827;
+}
+
+.danger {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.loading {
+  background: #94a3b8 !important;
+  color: #ffffff !important;
+}
+
+.active-mode {
+  background: #0ea5e9 !important;
+  color: #ffffff !important;
+}
+
+.active-danger {
+  background: #b91c1c !important;
+  color: #ffffff !important;
+}
+
+.status {
+  min-height: 20px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.status.ok {
+  color: #15803d;
+}
+
+.status.error {
+  color: #b91c1c;
+}
+
+.status.info {
+  color: #2563eb;
+}
+
+.hint {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.main {
+  padding: 20px;
+}
+
+.preview-card {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  padding: 16px;
+  min-height: calc(100vh - 40px);
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.preview-header h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.mode-label {
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.preview-wrap {
+  background: #f3f4f6;
+  border-radius: 12px;
+  padding: 16px;
+  overflow: auto;
+  min-height: 80vh;
+}
+
+.preview-wrap.crosshair,
+.preview-wrap.crosshair * {
+  cursor: crosshair !important;
+}
+
+.preview-wrap.delete-mode,
+.preview-wrap.delete-mode * {
+  cursor: not-allowed !important;
+}
+
+#svgPreview svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  user-select: none;
+}
+
+.camera,
+.device,
+.text-item {
+  cursor: pointer;
+}
+
+.wall-hit {
+  cursor: pointer;
+}
+
+.wall-handle {
+  cursor: pointer;
+}
+
+.selected-for-move .camera-outer,
+.selected-for-move .device-rect,
+.selected-for-move .custom-text {
+  filter: drop-shadow(0 0 6px rgba(37, 99, 235, 0.6));
+  stroke: #2563eb;
+  stroke-width: 2;
+}
+
+.delete-target .camera-outer,
+.delete-target .device-rect,
+.delete-target .custom-text,
+.delete-target .wall-line {
+  filter: drop-shadow(0 0 6px rgba(220, 38, 38, 0.5));
+  stroke: #dc2626;
+  stroke-width: 2;
+}
+.camera-fov,
+.camera-label,
+.device-label,
+.custom-text {
+  pointer-events: none;
+}
+
+@media (max-width: 1180px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid #d9e2ec;
+  }
+
+  .main {
+    padding-top: 0;
+  }
+
+  .preview-card {
+    min-height: auto;
+  }
+}

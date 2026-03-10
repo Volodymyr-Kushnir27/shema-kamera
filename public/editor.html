@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Редактор плану відеоспостереження</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+  <h1 class="title">Редактор плану</h1>
+  <p class="sub">
+    Редактор плану відеоспостереження. Камери, обладнання і текст
+    переносяться в 2 кліки: 1 — вибір об'єкта, 2 — нова позиція.
+  </p>
+
+  <!--
+  <label class="label" for="promptInput">Опис об'єкта</label>
+  <textarea
+    id="promptInput"
+    placeholder="Наприклад:
+Приватний будинок, 4 кімнати, санвузол, бойлерна, 5 внутрішніх камер, 2 вуличні камери, сервер, реєстратор, АКБ та роутер у бойлерній."
+  ></textarea>
+  -->
+
+  <div class="grid2">
+    <!-- <button id="generateBtn" class="primary">Згенерувати з опису</button> -->
+    <button id="refreshBtn" class="secondary">Оновити план</button>
+  </div>
+
+  <div class="grid2">
+    <button id="addCameraBtn" class="secondary">Додати камеру</button>
+    <button id="addWallBtn" class="warning">Додати стіну</button>
+  </div>
+
+  <div class="grid3">
+    <button id="addServerBtn" class="secondary">Додати сервер</button>
+    <button id="addNvrBtn" class="secondary">Додати реєстратор</button>
+    <button id="addBatteryBtn" class="secondary">Додати АКБ</button>
+  </div>
+
+  <div class="grid3">
+    <button id="addRouterBtn" class="secondary">Додати роутер</button>
+    <button id="addTextBtn" class="secondary">Текст</button>
+    <button id="deleteModeBtn" class="danger">Видалити</button>
+  </div>
+
+  <div class="grid2">
+    <button id="cancelModeBtn" class="secondary">Скасувати режим</button>
+    <button id="resetBtn" class="secondary">Скинути</button>
+  </div>
+
+  <label class="label" for="jsonInput">JSON плану</label>
+  <textarea id="jsonInput" spellcheck="false"></textarea>
+
+  <div id="statusBox" class="status"></div>
+
+  <div class="hint">
+    <b>Стіна:</b> “Додати стіну” → 2 кліки по схемі.<br />
+    <b>Камера / обладнання / текст:</b> 1 клік по об'єкту → 2 клік у нову точку.<br />
+    <b>Видалення:</b> “Видалити” → клік по об'єкту.<br />
+    <b>Вихід із режиму:</b> “Скасувати режим”.
+  </div>
+</aside>
+
+      <main class="main">
+        <div class="preview-card">
+          <div class="preview-header">
+            <h2>Preview SVG</h2>
+            <div id="modeLabel" class="mode-label">Режим: звичайний</div>
+          </div>
+
+          <div id="previewWrap" class="preview-wrap">
+            <div id="svgPreview"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
