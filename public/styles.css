@@ -199,6 +199,7 @@ button:active {
 }
 
 .preview-wrap {
+  position: relative;
   background: #f3f4f6;
   border-radius: 12px;
   padding: 16px;
@@ -251,20 +252,6 @@ button:active {
   stroke-width: 3 !important;
 }
 
-.camera-fov,
-.camera-label,
-.device-label,
-.custom-text {
-  pointer-events: none;
-}
-.camera-rotate-handle {
-  cursor: grab;
-}
-
-.camera-rotate-handle:active {
-  cursor: grabbing;
-}
-
 .camera-rotate-handle,
 .camera-fov-handle {
   cursor: grab;
@@ -273,6 +260,48 @@ button:active {
 .camera-rotate-handle:active,
 .camera-fov-handle:active {
   cursor: grabbing;
+}
+
+.camera-fov,
+.camera-label,
+.device-label,
+.custom-text {
+  pointer-events: none;
+}
+
+.floating-tools {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  z-index: 20;
+}
+
+.floating-btn {
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.15);
+}
+
+.move-pad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.move-row {
+  display: flex;
+  gap: 8px;
+}
+
+.move-pad .floating-btn {
+  min-width: 52px;
+  min-height: 44px;
+  padding: 10px 14px;
+  font-size: 18px;
+  font-weight: 700;
 }
 
 @media (max-width: 1180px) {
@@ -292,5 +321,4 @@ button:active {
   .preview-card {
     min-height: auto;
   }
-  
 }

@@ -65,8 +65,8 @@
           <b>Перемістити стіну:</b> клік по синій точці на кінці стіни → клік у нове місце.<br />
           <b>Камера / двері / вікно / обладнання / текст:</b> 1 клік по об'єкту → 2 клік у нову точку.<br />
           <b>Видалення:</b> “Видалити” → клік по об'єкту або по точці стіни.<br />
-          <b>Скинути шаблон:</b> повертає стартову схему.<br />
-          <b>Очистити все:</b> робить повністю пусте полотно.
+          <b>Виділити все:</b> дає змогу рухати всю схему кнопками справа внизу.<br />
+          <b>Скачати PDF:</b> експортує поточну схему у PDF.
         </div>
       </aside>
 
@@ -79,6 +79,21 @@
 
           <div id="previewWrap" class="preview-wrap">
             <div id="svgPreview"></div>
+
+            <div class="floating-tools">
+              <button id="selectAllBtn" class="secondary floating-btn">Виділити все</button>
+
+              <div class="move-pad">
+                <button id="moveUpBtn" class="secondary floating-btn">↑</button>
+                <div class="move-row">
+                  <button id="moveLeftBtn" class="secondary floating-btn">←</button>
+                  <button id="moveDownBtn" class="secondary floating-btn">↓</button>
+                  <button id="moveRightBtn" class="secondary floating-btn">→</button>
+                </div>
+              </div>
+
+              <button id="downloadPdfBtn" class="primary floating-btn">Скачати PDF</button>
+            </div>
           </div>
         </div>
       </main>

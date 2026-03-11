@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { generatePlanFromText } from "./openai-plan.js";
 import { mockPlan } from "./mock-plan.js";
 import { generateSvg } from "./svg-renderer.js";
+import { generatePlanPdfBuffer } from "./pdf-export.js";
 
 const PORT = process.env.PORT || 3000;
 
@@ -172,6 +173,26 @@ const server = http.createServer(async (req, res) => {
         console.error("GENERATE ERROR:", error);
         return sendJson(res, 500, {
           error: error.message || "Помилка генерації плану"
+        });
+      }
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/export-pdf") {
+      try {
+        const raw = await readBody(req);
+        const parsedPlan = JSON.parse(raw || "{}");
+        const pdfBuffer = await generatePlanPdfBuffer(parsedPlan);
+
+        res.writeHead(200, {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": 'attachment; filename="schema-plan.pdf"',
+          "Cache-Control": "no-store"
+        });
+        return res.end(pdfBuffer);
+      } catch (error) {
+        console.error("PDF EXPORT ERROR:", error);
+        return sendJson(res, 500, {
+          error: error.message || "Помилка генерації PDF"
         });
       }
     }

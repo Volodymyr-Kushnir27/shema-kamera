@@ -53,22 +53,24 @@ function normalizePlan(raw) {
   }));
 
   plan.doors = safeArray(plan.doors).map((door, i) => ({
-    id: door.id || uid("door", i),
-    label: door.label || `Двері ${i + 1}`,
-    x: toNum(door.x, 1),
-    y: toNum(door.y, 1),
-    w: toNum(door.w, 1),
-    h: toNum(door.h, 0.3)
-  }));
+  id: door.id || `door${i + 1}`,
+  label: door.label || `Двері ${i + 1}`,
+  x: toNum(door.x, 1),
+  y: toNum(door.y, 1),
+  w: toNum(door.w, 1),
+  h: toNum(door.h, 0.3),
+  rotation: toNum(door.rotation, 0)
+}));
 
   plan.windows = safeArray(plan.windows).map((item, i) => ({
-    id: item.id || uid("window", i),
-    label: item.label || `Вікно ${i + 1}`,
-    x: toNum(item.x, 1),
-    y: toNum(item.y, 1),
-    w: toNum(item.w, 1.2),
-    h: toNum(item.h, 0.22)
-  }));
+  id: item.id || `window${i + 1}`,
+  label: item.label || `Вікно ${i + 1}`,
+  x: toNum(item.x, 1),
+  y: toNum(item.y, 1),
+  w: toNum(item.w, 1.2),
+  h: toNum(item.h, 0.22),
+  rotation: toNum(item.rotation, 0)
+}));
 
   plan.walls = safeArray(plan.walls).map((wall, i) => ({
     id: wall.id || uid("wall", i),

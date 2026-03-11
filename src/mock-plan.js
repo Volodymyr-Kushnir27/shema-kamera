@@ -4,13 +4,13 @@ export const mockPlan = {
   rooms: [],
 
   doors: [
-    { id: "door1", label: "Двері 1", x: 5.0, y: 2.95, w: 1, h: 0.3 },
-    { id: "door2", label: "Двері 2", x: 9.0, y: 2.95, w: 1, h: 0.3 }
+    { id: "door1", label: "Двері 1", x: 5.0, y: 2.95, w: 1, h: 0.3, rotation: 0 },
+    { id: "door2", label: "Двері 2", x: 9.0, y: 2.95, w: 1, h: 0.3, rotation: 0 }
   ],
 
   windows: [
-    { id: "window1", label: "Вікно 1", x: 2.0, y: 1.02, w: 1.2, h: 0.22 },
-    { id: "window2", label: "Вікно 2", x: 7.4, y: 1.02, w: 1.2, h: 0.22 }
+    { id: "window1", label: "Вікно 1", x: 2.0, y: 1.02, w: 1.2, h: 0.22, rotation: 0 },
+    { id: "window2", label: "Вікно 2", x: 7.4, y: 1.02, w: 1.2, h: 0.22, rotation: 0 }
   ],
 
   walls: [

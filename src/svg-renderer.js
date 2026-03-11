@@ -104,9 +104,18 @@ function renderDoor(door, scale) {
   const y = scaleValue(door.y, scale);
   const w = scaleValue(door.w, scale);
   const h = scaleValue(door.h, scale);
+  const rotation = Number(door.rotation || 0);
+
+  const cx = x + w / 2;
+  const cy = y + h / 2;
 
   return `
-    <g class="door movable" data-type="door" data-id="${escapeXml(door.id)}">
+    <g
+      class="door movable"
+      data-type="door"
+      data-id="${escapeXml(door.id)}"
+      transform="rotate(${rotation} ${cx} ${cy})"
+    >
       <rect
         x="${x}"
         y="${y}"
@@ -126,9 +135,18 @@ function renderWindow(windowItem, scale) {
   const y = scaleValue(windowItem.y, scale);
   const w = scaleValue(windowItem.w, scale);
   const h = scaleValue(windowItem.h, scale);
+  const rotation = Number(windowItem.rotation || 0);
+
+  const cx = x + w / 2;
+  const cy = y + h / 2;
 
   return `
-    <g class="window movable" data-type="window" data-id="${escapeXml(windowItem.id)}">
+    <g
+      class="window movable"
+      data-type="window"
+      data-id="${escapeXml(windowItem.id)}"
+      transform="rotate(${rotation} ${cx} ${cy})"
+    >
       <rect
         x="${x}"
         y="${y}"

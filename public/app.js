@@ -22,6 +22,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const resetBtn = document.getElementById("resetBtn");
   const clearAllBtn = document.getElementById("clearAllBtn");
 
+  const selectAllBtn = document.getElementById("selectAllBtn");
+  const moveUpBtn = document.getElementById("moveUpBtn");
+  const moveDownBtn = document.getElementById("moveDownBtn");
+  const moveLeftBtn = document.getElementById("moveLeftBtn");
+  const moveRightBtn = document.getElementById("moveRightBtn");
+  const downloadPdfBtn = document.getElementById("downloadPdfBtn");
+
   let plan = null;
   let mode = "normal";
   let selectedMoveTarget = null;
@@ -29,10 +36,12 @@ document.addEventListener("DOMContentLoaded", () => {
   let pendingWallPoint = null;
   let rotatingCameraId = null;
   let editingFovCameraId = null;
+  let allSelected = false;
 
   const DEVICE_SIZE = { w: 0.3, h: 0.3 };
   const DEFAULT_DOOR = { w: 1, h: 0.3 };
   const DEFAULT_WINDOW = { w: 1.2, h: 0.22 };
+  const GROUP_MOVE_STEP = 0.2;
 
   function uid(prefix) {
     return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
@@ -97,6 +106,20 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  function applyAllSelectedUi() {
+    svgPreview.querySelectorAll(".selected-for-move").forEach((el) => {
+      el.classList.remove("selected-for-move");
+    });
+
+    if (!allSelected) return;
+
+    svgPreview
+      .querySelectorAll(".camera, .device, .text-item, .door, .window, .wall")
+      .forEach((el) => {
+        el.classList.add("selected-for-move");
+      });
+  }
+
   function highlightSelected(type, id) {
     svgPreview.querySelectorAll(".selected-for-move").forEach((el) => {
       el.classList.remove("selected-for-move");
@@ -159,6 +182,7 @@ document.addEventListener("DOMContentLoaded", () => {
     addRouterBtn.classList.toggle("active-mode", mode === "add-router");
     addTextBtn.classList.toggle("active-mode", mode === "add-text");
     deleteModeBtn.classList.toggle("active-danger", mode === "delete");
+    selectAllBtn.classList.toggle("active-mode", allSelected);
   }
 
   function resetMode() {
@@ -166,6 +190,7 @@ document.addEventListener("DOMContentLoaded", () => {
     pendingWallPoint = null;
     clearSelection();
     updateModeUi();
+    applyAllSelectedUi();
   }
 
   function findCameraById(id) {
@@ -234,6 +259,7 @@ document.addEventListener("DOMContentLoaded", () => {
     svgPreview.innerHTML = data.svg;
     bindSvgEvents();
     updateModeUi();
+    applyAllSelectedUi();
   }
 
   function eventToPlanCoords(event) {
@@ -252,73 +278,70 @@ document.addEventListener("DOMContentLoaded", () => {
       y: +(y / scale).toFixed(2)
     };
   }
+
   function angleFromCameraToPoint(camera, point) {
-  const dx = point.x - camera.x;
-  const dy = point.y - camera.y;
-  const angleRad = Math.atan2(dy, dx);
-  let angleDeg = (angleRad * 180) / Math.PI;
+    const dx = point.x - camera.x;
+    const dy = point.y - camera.y;
+    const angleRad = Math.atan2(dy, dx);
+    let angleDeg = (angleRad * 180) / Math.PI;
 
-  if (angleDeg < 0) {
-    angleDeg += 360;
+    if (angleDeg < 0) angleDeg += 360;
+    return +angleDeg.toFixed(1);
   }
 
-  return +angleDeg.toFixed(1);
-} 
-
-function normalizeAngle360(angle) {
-  let a = angle % 360;
-  if (a < 0) a += 360;
-  return a;
-}
-
-function smallestAngleDiff(a, b) {
-  let diff = normalizeAngle360(a - b);
-  if (diff > 180) diff = 360 - diff;
-  return diff;
-}
-
-function fovFromCameraToPoint(camera, point) {
-  const dx = point.x - camera.x;
-  const dy = point.y - camera.y;
-
-  const pointAngleRad = Math.atan2(dy, dx);
-  let pointAngleDeg = (pointAngleRad * 180) / Math.PI;
-  pointAngleDeg = normalizeAngle360(pointAngleDeg);
-
-  const cameraAngle = normalizeAngle360(camera.angle ?? 90);
-  const diff = smallestAngleDiff(pointAngleDeg, cameraAngle);
-
-  let fov = diff * 2;
-
-  if (fov < 10) fov = 10;
-  if (fov > 170) fov = 170;
-
-  return +fov.toFixed(1);
-}
-
-function startFovEdit(cameraId) {
-  editingFovCameraId = cameraId;
-  setStatus("Зміна кута огляду: рухайте мишкою.", "info");
-}
-
-function stopFovEdit() {
-  if (editingFovCameraId) {
-    editingFovCameraId = null;
-    setStatus("Кут огляду оновлено.", "ok");
+  function normalizeAngle360(angle) {
+    let a = angle % 360;
+    if (a < 0) a += 360;
+    return a;
   }
-}
 
-function startCameraRotation(cameraId) {
-  rotatingCameraId = cameraId;
-  setStatus("Обертання камери: рухайте мишкою.", "info");
-}
-
-function stopCameraRotation() {
-  if (rotatingCameraId) {
-    rotatingCameraId = null;
-    setStatus("Напрямок камери оновлено.", "ok");
+  function smallestAngleDiff(a, b) {
+    let diff = normalizeAngle360(a - b);
+    if (diff > 180) diff = 360 - diff;
+    return diff;
   }
-}
+
+  function fovFromCameraToPoint(camera, point) {
+    const dx = point.x - camera.x;
+    const dy = point.y - camera.y;
+
+    const pointAngleRad = Math.atan2(dy, dx);
+    let pointAngleDeg = (pointAngleRad * 180) / Math.PI;
+    pointAngleDeg = normalizeAngle360(pointAngleDeg);
+
+    const cameraAngle = normalizeAngle360(camera.angle ?? 90);
+    const diff = smallestAngleDiff(pointAngleDeg, cameraAngle);
+
+    let fov = diff * 2;
+    if (fov < 10) fov = 10;
+    if (fov > 170) fov = 170;
+
+    return +fov.toFixed(1);
+  }
+
+  function startCameraRotation(cameraId) {
+    rotatingCameraId = cameraId;
+    setStatus("Обертання камери: рухайте мишкою.", "info");
+  }
+
+  function stopCameraRotation() {
+    if (rotatingCameraId) {
+      rotatingCameraId = null;
+      setStatus("Напрямок камери оновлено.", "ok");
+    }
+  }
+
+  function startFovEdit(cameraId) {
+    editingFovCameraId = cameraId;
+    setStatus("Зміна кута огляду: рухайте мишкою.", "info");
+  }
+
+  function stopFovEdit() {
+    if (editingFovCameraId) {
+      editingFovCameraId = null;
+      setStatus("Кут огляду оновлено.", "ok");
+    }
+  }
 
   async function moveSelectedTo(point) {
     if (!selectedMoveTarget || !point) return false;
@@ -348,20 +371,26 @@ function stopCameraRotation() {
     }
 
     if (selectedMoveTarget.type === "door") {
-      const item = findDoorById(selectedMoveTarget.id);
-      if (item) {
-        item.x = point.x;
-        item.y = point.y;
-      }
-    }
+  const item = findDoorById(selectedMoveTarget.id);
+  if (item) {
+    const w = Number(item.w || 1);
+    const h = Number(item.h || 0.3);
 
-    if (selectedMoveTarget.type === "window") {
-      const item = findWindowById(selectedMoveTarget.id);
-      if (item) {
-        item.x = point.x;
-        item.y = point.y;
-      }
-    }
+    item.x = +(point.x - w / 2).toFixed(2);
+    item.y = +(point.y - h / 2).toFixed(2);
+  }
+}
+
+if (selectedMoveTarget.type === "window") {
+  const item = findWindowById(selectedMoveTarget.id);
+  if (item) {
+    const w = Number(item.w || 1.2);
+    const h = Number(item.h || 0.22);
+
+    item.x = +(point.x - w / 2).toFixed(2);
+    item.y = +(point.y - h / 2).toFixed(2);
+  }
+}
 
     syncJson();
     clearSelection();
@@ -440,309 +469,461 @@ function stopCameraRotation() {
     }
   }
 
- function bindSvgEvents() {
-  const svg = svgPreview.querySelector("svg");
-  if (!svg) return;
+  async function rotateDoorOrWindowBy90(type, id) {
+  if (type === "door") {
+    const item = findDoorById(id);
+    if (!item) return;
 
-  svg.onmousedown = (event) => {
-    const rotateHandle = event.target.closest(".camera-rotate-handle");
-    if (rotateHandle) {
-      const cameraNode = rotateHandle.closest(".camera");
-      const cameraId = cameraNode?.dataset?.id;
-      if (!cameraId) return;
+    item.rotation = ((Number(item.rotation) || 0) + 90) % 360;
+    syncJson();
+    await renderPlan();
+    setStatus("Двері повернуто на 90°.", "ok");
+    return;
+  }
 
-      startCameraRotation(cameraId);
-      event.preventDefault();
-      event.stopPropagation();
+  if (type === "window") {
+    const item = findWindowById(id);
+    if (!item) return;
+
+    item.rotation = ((Number(item.rotation) || 0) + 90) % 360;
+    syncJson();
+    await renderPlan();
+    setStatus("Вікно повернуто на 90°.", "ok");
+  }
+}
+
+  function shiftValue(value, delta) {
+    return +(Number(value || 0) + delta).toFixed(2);
+  }
+
+  async function moveEntirePlan(dx, dy) {
+    if (!allSelected) {
+      setStatus("Спочатку натисніть “Виділити все”.", "info");
       return;
     }
 
-    const fovHandle = event.target.closest(".camera-fov-handle");
-    if (fovHandle) {
-      const cameraNode = fovHandle.closest(".camera");
-      const cameraId = cameraNode?.dataset?.id;
-      if (!cameraId) return;
+    plan.rooms = plan.rooms.map((room) => ({
+      ...room,
+      x: shiftValue(room.x, dx),
+      y: shiftValue(room.y, dy)
+    }));
 
-      startFovEdit(cameraId);
-      event.preventDefault();
-      event.stopPropagation();
+    plan.doors = plan.doors.map((item) => ({
+      ...item,
+      x: shiftValue(item.x, dx),
+      y: shiftValue(item.y, dy)
+    }));
+
+    plan.windows = plan.windows.map((item) => ({
+      ...item,
+      x: shiftValue(item.x, dx),
+      y: shiftValue(item.y, dy)
+    }));
+
+    plan.cameras = plan.cameras.map((item) => ({
+      ...item,
+      x: shiftValue(item.x, dx),
+      y: shiftValue(item.y, dy)
+    }));
+
+    plan.devices = plan.devices.map((item) => ({
+      ...item,
+      x: shiftValue(item.x, dx),
+      y: shiftValue(item.y, dy)
+    }));
+
+    plan.texts = plan.texts.map((item) => ({
+      ...item,
+      x: shiftValue(item.x, dx),
+      y: shiftValue(item.y, dy)
+    }));
+
+    plan.walls = plan.walls.map((item) => ({
+      ...item,
+      x1: shiftValue(item.x1, dx),
+      y1: shiftValue(item.y1, dy),
+      x2: shiftValue(item.x2, dx),
+      y2: shiftValue(item.y2, dy)
+    }));
+
+    plan.outsideAreas = plan.outsideAreas.map((item) => ({
+      ...item,
+      x: shiftValue(item.x, dx),
+      y: shiftValue(item.y, dy)
+    }));
+
+    if (plan.car) {
+      plan.car = {
+        ...plan.car,
+        x: shiftValue(plan.car.x, dx),
+        y: shiftValue(plan.car.y, dy)
+      };
     }
-  };
 
-  svg.onmousemove = async (event) => {
-    if (rotatingCameraId) {
-      const point = eventToPlanCoords(event);
-      if (!point) return;
+    syncJson();
+    await renderPlan();
+    setStatus("Усю схему зсунуто.", "ok");
+  }
 
-      const camera = findCameraById(rotatingCameraId);
-      if (!camera) return;
+  async function downloadPdf() {
+    try {
+      downloadPdfBtn.classList.add("loading");
+      setStatus("Готується PDF...", "info");
 
-      camera.angle = angleFromCameraToPoint(camera, point);
-      syncJson();
-      await renderPlan();
-      return;
+      const response = await fetch("/api/export-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(plan)
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Не вдалося згенерувати PDF");
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "schema-plan.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      setStatus("PDF завантажено.", "ok");
+    } catch (error) {
+      console.error(error);
+      setStatus(error.message || "Помилка експорту PDF", "error");
+    } finally {
+      downloadPdfBtn.classList.remove("loading");
     }
+  }
 
-    if (editingFovCameraId) {
-      const point = eventToPlanCoords(event);
-      if (!point) return;
+  function bindSvgEvents() {
+    const svg = svgPreview.querySelector("svg");
+    if (!svg) return;
 
-      const camera = findCameraById(editingFovCameraId);
-      if (!camera) return;
+    svg.onmousedown = (event) => {
+      const rotateHandle = event.target.closest(".camera-rotate-handle");
+      if (rotateHandle) {
+        const cameraNode = rotateHandle.closest(".camera");
+        const cameraId = cameraNode?.dataset?.id;
+        if (!cameraId) return;
 
-      camera.fov = fovFromCameraToPoint(camera, point);
-      syncJson();
-      await renderPlan();
-    }
-  };
-
-  svg.onmouseup = () => {
-    stopCameraRotation();
-    stopFovEdit();
-  };
-
-  svg.onmouseleave = () => {
-    stopCameraRotation();
-    stopFovEdit();
-  };
-
-  svg.onclick = async (event) => {
-    if (rotatingCameraId || editingFovCameraId) return;
-
-    const point = eventToPlanCoords(event);
-    if (!point) return;
-
-    const targetNode = getTargetFromEventTarget(event.target);
-    const targetType = getTargetType(targetNode);
-
-    const wallNode =
-      targetType === "wall-handle"
-        ? targetNode.closest(".wall")
-        : targetNode?.classList?.contains("wall")
-          ? targetNode
-          : targetNode?.closest(".wall");
-
-    const wallId = wallNode?.dataset?.id || null;
-    const targetId =
-      targetType === "wall-handle"
-        ? wallId
-        : targetNode?.dataset?.id || wallId || null;
-
-    const targetEnd = targetNode?.dataset?.end || null;
-
-    if (mode === "delete" && targetType && targetId) {
-      if (targetType === "wall-handle") {
-        await deleteByType("wall", wallId);
+        startCameraRotation(cameraId);
+        event.preventDefault();
+        event.stopPropagation();
         return;
       }
 
-      await deleteByType(targetType, targetId);
-      return;
-    }
+      const fovHandle = event.target.closest(".camera-fov-handle");
+      if (fovHandle) {
+        const cameraNode = fovHandle.closest(".camera");
+        const cameraId = cameraNode?.dataset?.id;
+        if (!cameraId) return;
 
-    if (selectedWallHandle) {
-      await moveWallHandleTo(point);
-      return;
-    }
+        startFovEdit(cameraId);
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
 
-    if (selectedMoveTarget) {
-      await moveSelectedTo(point);
-      return;
-    }
+    svg.onmousemove = async (event) => {
+      if (rotatingCameraId) {
+        const point = eventToPlanCoords(event);
+        if (!point) return;
 
-    if (mode === "normal" && targetType === "wall-handle") {
-      if (!wallId) return;
+        const camera = findCameraById(rotatingCameraId);
+        if (!camera) return;
 
-      selectedWallHandle = {
-        id: wallId,
-        end: targetEnd
-      };
+        camera.angle = angleFromCameraToPoint(camera, point);
+        syncJson();
+        await renderPlan();
+        return;
+      }
 
-      highlightWallHandle(wallId, targetEnd);
-      setStatus("Точка стіни вибрана. Клікніть у нове місце.", "info");
-      return;
-    }
+      if (editingFovCameraId) {
+        const point = eventToPlanCoords(event);
+        if (!point) return;
 
-    if (
-      mode === "normal" &&
-      targetType &&
-      !["wall", "wall-handle"].includes(targetType) &&
-      targetId
-    ) {
-      selectedMoveTarget = {
-        type: targetType,
-        id: targetId
-      };
+        const camera = findCameraById(editingFovCameraId);
+        if (!camera) return;
 
-      highlightSelected(targetType, targetId);
-      setStatus("Об'єкт вибрано. Тепер клікніть у нове місце.", "info");
-      return;
-    }
+        camera.fov = fovFromCameraToPoint(camera, point);
+        syncJson();
+        await renderPlan();
+      }
+    };
 
-    if (mode === "add-camera") {
-      plan.cameras.push({
-        id: uid("cam"),
-        label: `Камера ${plan.cameras.length + 1}`,
-        x: point.x,
-        y: point.y,
-        angle: 90,
-        fov: 70,
-        range: 3
-      });
+    svg.onmouseup = () => {
+      stopCameraRotation();
+      stopFovEdit();
+    };
 
-      syncJson();
-      await renderPlan();
-      resetMode();
-      setStatus("Камеру додано.", "ok");
-      return;
-    }
+    svg.onmouseleave = () => {
+      stopCameraRotation();
+      stopFovEdit();
+    };
 
-    if (mode === "add-door") {
-      plan.doors.push({
-        id: uid("door"),
-        label: `Двері ${plan.doors.length + 1}`,
-        x: point.x,
-        y: point.y,
-        ...DEFAULT_DOOR
-      });
+      svg.ondblclick = async (event) => {
+    const targetNode = getTargetFromEventTarget(event.target);
+    const targetType = getTargetType(targetNode);
+    const targetId = targetNode?.dataset?.id || null;
 
-      syncJson();
-      await renderPlan();
-      resetMode();
-      setStatus("Двері додано.", "ok");
-      return;
-    }
+    if (!targetType || !targetId) return;
+    if (!["door", "window"].includes(targetType)) return;
 
-    if (mode === "add-window") {
-      plan.windows.push({
-        id: uid("window"),
-        label: `Вікно ${plan.windows.length + 1}`,
-        x: point.x,
-        y: point.y,
-        ...DEFAULT_WINDOW
-      });
+    await rotateDoorOrWindowBy90(targetType, targetId);
+    event.preventDefault();
+    event.stopPropagation();
+  };
 
-      syncJson();
-      await renderPlan();
-      resetMode();
-      setStatus("Вікно додано.", "ok");
-      return;
-    }
+    svg.onclick = async (event) => {
+      if (rotatingCameraId || editingFovCameraId) return;
 
-    if (mode === "add-server") {
-      plan.devices.push({
-        id: uid("server"),
-        type: "server",
-        label: "Сервер",
-        x: point.x,
-        y: point.y,
-        ...DEVICE_SIZE
-      });
+      const point = eventToPlanCoords(event);
+      if (!point) return;
 
-      syncJson();
-      await renderPlan();
-      resetMode();
-      setStatus("Сервер додано.", "ok");
-      return;
-    }
+      const targetNode = getTargetFromEventTarget(event.target);
+      const targetType = getTargetType(targetNode);
 
-    if (mode === "add-nvr") {
-      plan.devices.push({
-        id: uid("nvr"),
-        type: "nvr",
-        label: "Реєстратор",
-        x: point.x,
-        y: point.y,
-        ...DEVICE_SIZE
-      });
+      const wallNode =
+        targetType === "wall-handle"
+          ? targetNode.closest(".wall")
+          : targetNode?.classList?.contains("wall")
+            ? targetNode
+            : targetNode?.closest(".wall");
 
-      syncJson();
-      await renderPlan();
-      resetMode();
-      setStatus("Реєстратор додано.", "ok");
-      return;
-    }
+      const wallId = wallNode?.dataset?.id || null;
+      const targetId =
+        targetType === "wall-handle"
+          ? wallId
+          : targetNode?.dataset?.id || wallId || null;
 
-    if (mode === "add-battery") {
-      plan.devices.push({
-        id: uid("battery"),
-        type: "battery",
-        label: "АКБ",
-        x: point.x,
-        y: point.y,
-        ...DEVICE_SIZE
-      });
+      const targetEnd = targetNode?.dataset?.end || null;
 
-      syncJson();
-      await renderPlan();
-      resetMode();
-      setStatus("АКБ додано.", "ok");
-      return;
-    }
+      if (mode === "delete" && targetType && targetId) {
+        if (targetType === "wall-handle") {
+          await deleteByType("wall", wallId);
+          return;
+        }
 
-    if (mode === "add-router") {
-      plan.devices.push({
-        id: uid("router"),
-        type: "router",
-        label: "Роутер",
-        x: point.x,
-        y: point.y,
-        ...DEVICE_SIZE
-      });
+        await deleteByType(targetType, targetId);
+        return;
+      }
 
-      syncJson();
-      await renderPlan();
-      resetMode();
-      setStatus("Роутер додано.", "ok");
-      return;
-    }
+      if (selectedWallHandle) {
+        await moveWallHandleTo(point);
+        return;
+      }
 
-    if (mode === "add-text") {
-      const textValue = window.prompt("Введіть текст");
+      if (selectedMoveTarget) {
+        await moveSelectedTo(point);
+        return;
+      }
 
-      if (textValue && textValue.trim()) {
-        plan.texts.push({
-          id: uid("text"),
-          text: textValue.trim(),
+      if (mode === "normal" && targetType === "wall-handle") {
+        if (!wallId) return;
+
+        allSelected = false;
+        updateModeUi();
+
+        selectedWallHandle = {
+          id: wallId,
+          end: targetEnd
+        };
+
+        highlightWallHandle(wallId, targetEnd);
+        setStatus("Точка стіни вибрана. Клікніть у нове місце.", "info");
+        return;
+      }
+
+      if (
+        mode === "normal" &&
+        targetType &&
+        !["wall", "wall-handle"].includes(targetType) &&
+        targetId
+      ) {
+        allSelected = false;
+        updateModeUi();
+
+        selectedMoveTarget = {
+          type: targetType,
+          id: targetId
+        };
+
+        highlightSelected(targetType, targetId);
+        setStatus("Об'єкт вибрано. Тепер клікніть у нове місце.", "info");
+        return;
+      }
+
+      if (mode === "add-camera") {
+        plan.cameras.push({
+          id: uid("cam"),
+          label: `Камера ${plan.cameras.length + 1}`,
           x: point.x,
           y: point.y,
-          fontSize: 18,
-          color: "#334155"
+          angle: 90,
+          fov: 70,
+          range: 3
         });
 
         syncJson();
         await renderPlan();
-        setStatus("Текст додано.", "ok");
-      } else {
-        setStatus("Текст не введено.", "info");
-      }
-
-      resetMode();
-      return;
-    }
-
-    if (mode === "add-wall") {
-      if (!pendingWallPoint) {
-        pendingWallPoint = { x: point.x, y: point.y };
-        setStatus("Перша точка стіни вибрана. Клікніть другу точку.", "info");
+        resetMode();
+        setStatus("Камеру додано.", "ok");
         return;
       }
 
-      plan.walls.push({
-        id: uid("wall"),
-        x1: pendingWallPoint.x,
-        y1: pendingWallPoint.y,
-        x2: point.x,
-        y2: point.y
-      });
+      if (mode === "add-door") {
+  plan.doors.push({
+    id: uid("door"),
+    label: `Двері ${plan.doors.length + 1}`,
+    x: point.x,
+    y: point.y,
+    rotation: 0,
+    ...DEFAULT_DOOR
+  });
 
-      syncJson();
-      await renderPlan();
-      resetMode();
-      setStatus("Стіна додана.", "ok");
-    }
-  };
-}
+        syncJson();
+        await renderPlan();
+        resetMode();
+        setStatus("Двері додано.", "ok");
+        return;
+      }
+
+      if (mode === "add-window") {
+  plan.windows.push({
+    id: uid("window"),
+    label: `Вікно ${plan.windows.length + 1}`,
+    x: point.x,
+    y: point.y,
+    rotation: 0,
+    ...DEFAULT_WINDOW
+  });
+
+        syncJson();
+        await renderPlan();
+        resetMode();
+        setStatus("Вікно додано.", "ok");
+        return;
+      }
+
+      if (mode === "add-server") {
+        plan.devices.push({
+          id: uid("server"),
+          type: "server",
+          label: "Сервер",
+          x: point.x,
+          y: point.y,
+          ...DEVICE_SIZE
+        });
+
+        syncJson();
+        await renderPlan();
+        resetMode();
+        setStatus("Сервер додано.", "ok");
+        return;
+      }
+
+      if (mode === "add-nvr") {
+        plan.devices.push({
+          id: uid("nvr"),
+          type: "nvr",
+          label: "Реєстратор",
+          x: point.x,
+          y: point.y,
+          ...DEVICE_SIZE
+        });
+
+        syncJson();
+        await renderPlan();
+        resetMode();
+        setStatus("Реєстратор додано.", "ok");
+        return;
+      }
+
+      if (mode === "add-battery") {
+        plan.devices.push({
+          id: uid("battery"),
+          type: "battery",
+          label: "АКБ",
+          x: point.x,
+          y: point.y,
+          ...DEVICE_SIZE
+        });
+
+        syncJson();
+        await renderPlan();
+        resetMode();
+        setStatus("АКБ додано.", "ok");
+        return;
+      }
+
+      if (mode === "add-router") {
+        plan.devices.push({
+          id: uid("router"),
+          type: "router",
+          label: "Роутер",
+          x: point.x,
+          y: point.y,
+          ...DEVICE_SIZE
+        });
+
+        syncJson();
+        await renderPlan();
+        resetMode();
+        setStatus("Роутер додано.", "ok");
+        return;
+      }
+
+      if (mode === "add-text") {
+        const textValue = window.prompt("Введіть текст");
+
+        if (textValue && textValue.trim()) {
+          plan.texts.push({
+            id: uid("text"),
+            text: textValue.trim(),
+            x: point.x,
+            y: point.y,
+            fontSize: 18,
+            color: "#334155"
+          });
+
+          syncJson();
+          await renderPlan();
+          setStatus("Текст додано.", "ok");
+        } else {
+          setStatus("Текст не введено.", "info");
+        }
+
+        resetMode();
+        return;
+      }
+
+      if (mode === "add-wall") {
+        if (!pendingWallPoint) {
+          pendingWallPoint = { x: point.x, y: point.y };
+          setStatus("Перша точка стіни вибрана. Клікніть другу точку.", "info");
+          return;
+        }
+
+        plan.walls.push({
+          id: uid("wall"),
+          x1: pendingWallPoint.x,
+          y1: pendingWallPoint.y,
+          x2: point.x,
+          y2: point.y
+        });
+
+        syncJson();
+        await renderPlan();
+        resetMode();
+        setStatus("Стіна додана.", "ok");
+      }
+    };
+  }
 
   async function loadMockPlan() {
     const response = await fetch("/api/mock-plan", {
@@ -752,6 +933,7 @@ function stopCameraRotation() {
     const data = await response.json();
     plan = data;
     ensureArrays();
+    allSelected = false;
     syncJson();
     await renderPlan();
     resetMode();
@@ -783,6 +965,7 @@ function stopCameraRotation() {
 
       plan = data.plan;
       ensureArrays();
+      allSelected = false;
       syncJson();
       await renderPlan();
       resetMode();
@@ -799,6 +982,7 @@ function stopCameraRotation() {
     try {
       plan = parsePlanFromTextarea();
       ensureArrays();
+      allSelected = false;
       syncJson();
       await renderPlan();
       setStatus("План оновлено з JSON.", "ok");
@@ -809,6 +993,7 @@ function stopCameraRotation() {
   });
 
   addCameraBtn.addEventListener("click", () => {
+    allSelected = false;
     mode = "add-camera";
     pendingWallPoint = null;
     clearSelection();
@@ -817,6 +1002,7 @@ function stopCameraRotation() {
   });
 
   addWallBtn.addEventListener("click", () => {
+    allSelected = false;
     mode = "add-wall";
     pendingWallPoint = null;
     clearSelection();
@@ -825,6 +1011,7 @@ function stopCameraRotation() {
   });
 
   addDoorBtn.addEventListener("click", () => {
+    allSelected = false;
     mode = "add-door";
     pendingWallPoint = null;
     clearSelection();
@@ -833,6 +1020,7 @@ function stopCameraRotation() {
   });
 
   addWindowBtn.addEventListener("click", () => {
+    allSelected = false;
     mode = "add-window";
     pendingWallPoint = null;
     clearSelection();
@@ -841,6 +1029,7 @@ function stopCameraRotation() {
   });
 
   addServerBtn.addEventListener("click", () => {
+    allSelected = false;
     mode = "add-server";
     pendingWallPoint = null;
     clearSelection();
@@ -849,6 +1038,7 @@ function stopCameraRotation() {
   });
 
   addNvrBtn.addEventListener("click", () => {
+    allSelected = false;
     mode = "add-nvr";
     pendingWallPoint = null;
     clearSelection();
@@ -857,6 +1047,7 @@ function stopCameraRotation() {
   });
 
   addBatteryBtn.addEventListener("click", () => {
+    allSelected = false;
     mode = "add-battery";
     pendingWallPoint = null;
     clearSelection();
@@ -865,6 +1056,7 @@ function stopCameraRotation() {
   });
 
   addRouterBtn.addEventListener("click", () => {
+    allSelected = false;
     mode = "add-router";
     pendingWallPoint = null;
     clearSelection();
@@ -873,6 +1065,7 @@ function stopCameraRotation() {
   });
 
   addTextBtn.addEventListener("click", () => {
+    allSelected = false;
     mode = "add-text";
     pendingWallPoint = null;
     clearSelection();
@@ -887,6 +1080,7 @@ function stopCameraRotation() {
       return;
     }
 
+    allSelected = false;
     mode = "delete";
     pendingWallPoint = null;
     clearSelection();
@@ -912,6 +1106,7 @@ function stopCameraRotation() {
     try {
       plan = emptyPlan();
       ensureArrays();
+      allSelected = false;
       syncJson();
       await renderPlan();
       resetMode();
@@ -920,6 +1115,39 @@ function stopCameraRotation() {
       console.error(error);
       setStatus(error.message || "Помилка очищення", "error");
     }
+  });
+
+  selectAllBtn.addEventListener("click", async () => {
+    allSelected = !allSelected;
+    clearSelection();
+    updateModeUi();
+    applyAllSelectedUi();
+
+    if (allSelected) {
+      setStatus("Усі елементи виділено. Можна рухати кнопками справа внизу.", "ok");
+    } else {
+      setStatus("Виділення всіх елементів скасовано.", "info");
+    }
+  });
+
+  moveUpBtn.addEventListener("click", async () => {
+    await moveEntirePlan(0, -GROUP_MOVE_STEP);
+  });
+
+  moveDownBtn.addEventListener("click", async () => {
+    await moveEntirePlan(0, GROUP_MOVE_STEP);
+  });
+
+  moveLeftBtn.addEventListener("click", async () => {
+    await moveEntirePlan(-GROUP_MOVE_STEP, 0);
+  });
+
+  moveRightBtn.addEventListener("click", async () => {
+    await moveEntirePlan(GROUP_MOVE_STEP, 0);
+  });
+
+  downloadPdfBtn.addEventListener("click", async () => {
+    await downloadPdf();
   });
 
   loadMockPlan().catch((error) => {

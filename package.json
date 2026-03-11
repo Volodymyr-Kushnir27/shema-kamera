@@ -8,6 +8,8 @@
   },
   "dependencies": {
     "dotenv": "^17.3.1",
-    "openai": "^6.27.0"
+    "openai": "^6.27.0",
+    "pdfkit": "^0.17.2",
+    "svg-to-pdfkit": "^0.1.8"
   }
 }
