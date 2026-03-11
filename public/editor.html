@@ -9,60 +9,66 @@
   <body>
     <div class="layout">
       <aside class="sidebar">
-  <h1 class="title">Редактор плану</h1>
-  <p class="sub">
-    Редактор плану відеоспостереження. Камери, обладнання і текст
-    переносяться в 2 кліки: 1 — вибір об'єкта, 2 — нова позиція.
-  </p>
+        <h1 class="title">Редактор плану</h1>
+        <p class="sub">
+          Камери, двері, вікна, обладнання і текст переносяться у 2 кліки:
+          вибір об'єкта → нова позиція. Стіни редагуються через точки на кінцях.
+        </p>
 
-  
-  <label class="label" for="promptInput">Опис об'єкта</label>
-  <textarea
-    id="promptInput"
-    placeholder="Наприклад:
-Приватний будинок, 4 кімнати, санвузол, бойлерна, 5 внутрішніх камер, 2 вуличні камери, сервер, реєстратор, АКБ та роутер у бойлерній."
-  ></textarea>
- 
+        <label class="label" for="promptInput">Опис об'єкта</label>
+        <textarea
+          id="promptInput"
+          placeholder="Наприклад:
+Будинок, 3 кімнати, кухня, санвузол, 5 внутрішніх камер, 2 зовнішні, сервер, реєстратор, АКБ, роутер."
+        ></textarea>
 
-  <div class="grid2">
-    <button id="generateBtn" class="primary">Згенерувати з опису</button>
-    <button id="refreshBtn" class="secondary">Оновити план</button>
-  </div>
+        <div class="grid2">
+          <button id="generateBtn" class="primary">Згенерувати з опису</button>
+          <button id="refreshBtn" class="secondary">Оновити план</button>
+        </div>
 
-  <div class="grid2">
-    <button id="addCameraBtn" class="secondary">Додати камеру</button>
-    <button id="addWallBtn" class="warning">Додати стіну</button>
-  </div>
+        <div class="grid3">
+          <button id="addCameraBtn" class="secondary">Додати камеру</button>
+          <button id="addWallBtn" class="warning">Додати стіну</button>
+          <button id="addDoorBtn" class="secondary">Додати двері</button>
+        </div>
 
-  <div class="grid3">
-    <button id="addServerBtn" class="secondary">Додати сервер</button>
-    <button id="addNvrBtn" class="secondary">Додати реєстратор</button>
-    <button id="addBatteryBtn" class="secondary">Додати АКБ</button>
-  </div>
+        <div class="grid3">
+          <button id="addWindowBtn" class="secondary">Додати вікно</button>
+          <button id="addTextBtn" class="secondary">Текст</button>
+          <button id="deleteModeBtn" class="danger">Видалити</button>
+        </div>
 
-  <div class="grid3">
-    <button id="addRouterBtn" class="secondary">Додати роутер</button>
-    <button id="addTextBtn" class="secondary">Текст</button>
-    <button id="deleteModeBtn" class="danger">Видалити</button>
-  </div>
+        <div class="grid3">
+          <button id="addServerBtn" class="secondary">Додати сервер</button>
+          <button id="addNvrBtn" class="secondary">Додати реєстратор</button>
+          <button id="addBatteryBtn" class="secondary">Додати АКБ</button>
+        </div>
 
-  <div class="grid2">
-    <button id="cancelModeBtn" class="secondary">Скасувати режим</button>
-    <button id="resetBtn" class="secondary">Скинути</button>
-  </div>
+        <div class="grid2">
+          <button id="addRouterBtn" class="secondary">Додати роутер</button>
+          <button id="cancelModeBtn" class="secondary">Скасувати режим</button>
+        </div>
 
-  <label class="label" for="jsonInput">JSON плану</label>
-  <textarea id="jsonInput" spellcheck="false"></textarea>
+        <div class="grid2">
+          <button id="resetBtn" class="secondary">Скинути шаблон</button>
+          <button id="clearAllBtn" class="danger">Очистити все</button>
+        </div>
 
-  <div id="statusBox" class="status"></div>
+        <label class="label" for="jsonInput">JSON плану</label>
+        <textarea id="jsonInput" spellcheck="false"></textarea>
 
-  <div class="hint">
-    <b>Стіна:</b> “Додати стіну” → 2 кліки по схемі.<br />
-    <b>Камера / обладнання / текст:</b> 1 клік по об'єкту → 2 клік у нову точку.<br />
-    <b>Видалення:</b> “Видалити” → клік по об'єкту.<br />
-    <b>Вихід із режиму:</b> “Скасувати режим”.
-  </div>
-</aside>
+        <div id="statusBox" class="status"></div>
+
+        <div class="hint">
+          <b>Стіна:</b> “Додати стіну” → 2 кліки по схемі.<br />
+          <b>Перемістити стіну:</b> клік по синій точці на кінці стіни → клік у нове місце.<br />
+          <b>Камера / двері / вікно / обладнання / текст:</b> 1 клік по об'єкту → 2 клік у нову точку.<br />
+          <b>Видалення:</b> “Видалити” → клік по об'єкту або по точці стіни.<br />
+          <b>Скинути шаблон:</b> повертає стартову схему.<br />
+          <b>Очистити все:</b> робить повністю пусте полотно.
+        </div>
+      </aside>
 
       <main class="main">
         <div class="preview-card">

@@ -61,17 +61,22 @@ textarea:focus {
 }
 
 #promptInput {
-  min-height: 130px;
+  min-height: 120px;
 }
 
 #jsonInput {
   min-height: 330px;
 }
 
+.grid1,
 .grid2,
 .grid3 {
   display: grid;
   gap: 10px;
+}
+
+.grid1 {
+  grid-template-columns: 1fr;
 }
 
 .grid2 {
@@ -97,11 +102,6 @@ button:hover {
 
 button:active {
   transform: translateY(1px);
-}
-
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.8;
 }
 
 .primary {
@@ -225,39 +225,54 @@ button:disabled {
 
 .camera,
 .device,
-.text-item {
-  cursor: pointer;
-}
-
-.wall-hit {
-  cursor: pointer;
-}
-
+.text-item,
+.door,
+.window,
+.wall,
+.wall-line,
+.wall-hit,
 .wall-handle {
   cursor: pointer;
 }
 
 .selected-for-move .camera-outer,
 .selected-for-move .device-rect,
-.selected-for-move .custom-text {
+.selected-for-move .custom-text,
+.selected-for-move rect,
+.selected-for-move line {
   filter: drop-shadow(0 0 6px rgba(37, 99, 235, 0.6));
   stroke: #2563eb;
   stroke-width: 2;
 }
 
-.delete-target .camera-outer,
-.delete-target .device-rect,
-.delete-target .custom-text,
-.delete-target .wall-line {
-  filter: drop-shadow(0 0 6px rgba(220, 38, 38, 0.5));
-  stroke: #dc2626;
-  stroke-width: 2;
+.selected-handle {
+  filter: drop-shadow(0 0 8px rgba(37, 99, 235, 0.95));
+  stroke: #1d4ed8 !important;
+  stroke-width: 3 !important;
 }
+
 .camera-fov,
 .camera-label,
 .device-label,
 .custom-text {
   pointer-events: none;
+}
+.camera-rotate-handle {
+  cursor: grab;
+}
+
+.camera-rotate-handle:active {
+  cursor: grabbing;
+}
+
+.camera-rotate-handle,
+.camera-fov-handle {
+  cursor: grab;
+}
+
+.camera-rotate-handle:active,
+.camera-fov-handle:active {
+  cursor: grabbing;
 }
 
 @media (max-width: 1180px) {
@@ -277,4 +292,5 @@ button:disabled {
   .preview-card {
     min-height: auto;
   }
+  
 }

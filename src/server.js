@@ -11,7 +11,6 @@ import { generateSvg } from "./svg-renderer.js";
 
 const PORT = process.env.PORT || 3000;
 
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "..");
@@ -19,13 +18,17 @@ const publicDir = path.join(projectRoot, "public");
 
 function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, {
-    "Content-Type": "application/json; charset=utf-8"
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store"
   });
   res.end(JSON.stringify(payload));
 }
 
 function sendText(res, statusCode, text, contentType = "text/plain; charset=utf-8") {
-  res.writeHead(statusCode, { "Content-Type": contentType });
+  res.writeHead(statusCode, {
+    "Content-Type": contentType,
+    "Cache-Control": "no-store"
+  });
   res.end(text);
 }
 
@@ -65,7 +68,8 @@ function serveStaticFile(res, filePath) {
 
   const content = fs.readFileSync(filePath);
   res.writeHead(200, {
-    "Content-Type": getContentType(filePath)
+    "Content-Type": getContentType(filePath),
+    "Cache-Control": "no-store"
   });
   res.end(content);
 }
@@ -140,23 +144,36 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "POST" && url.pathname === "/api/render-plan") {
-      const raw = await readBody(req);
-      const plan = JSON.parse(raw || "{}");
-      const svg = generateSvg(plan);
-      return sendJson(res, 200, { svg });
+      try {
+        const raw = await readBody(req);
+        const parsedPlan = JSON.parse(raw || "{}");
+        const svg = generateSvg(parsedPlan);
+        return sendJson(res, 200, { svg });
+      } catch (error) {
+        return sendJson(res, 400, {
+          error: `Некоректний JSON плану: ${error.message}`
+        });
+      }
     }
 
     if (req.method === "POST" && url.pathname === "/api/generate-from-text") {
-      const raw = await readBody(req);
-      const body = JSON.parse(raw || "{}");
-      const prompt = String(body.prompt || "").trim();
+      try {
+        const raw = await readBody(req);
+        const body = JSON.parse(raw || "{}");
+        const prompt = String(body.prompt || "").trim();
 
-      if (!prompt) {
-        return sendJson(res, 400, { error: "Порожній опис об'єкта" });
+        if (!prompt) {
+          return sendJson(res, 400, { error: "Порожній опис об'єкта" });
+        }
+
+        const generatedPlan = await generatePlanFromText(prompt);
+        return sendJson(res, 200, { plan: generatedPlan });
+      } catch (error) {
+        console.error("GENERATE ERROR:", error);
+        return sendJson(res, 500, {
+          error: error.message || "Помилка генерації плану"
+        });
       }
-
-      const plan = await generatePlanFromText(prompt);
-      return sendJson(res, 200, { plan });
     }
 
     return sendText(res, 404, "Not found");

@@ -22,6 +22,15 @@ function detectScale(plan) {
     values.push(Number(door.x), Number(door.y), Number(door.w), Number(door.h));
   }
 
+  for (const windowItem of plan.windows || []) {
+    values.push(
+      Number(windowItem.x),
+      Number(windowItem.y),
+      Number(windowItem.w),
+      Number(windowItem.h)
+    );
+  }
+
   for (const cam of plan.cameras || []) {
     values.push(Number(cam.x), Number(cam.y), Number(cam.range));
   }
@@ -86,15 +95,6 @@ function renderRoom(room, scale) {
         stroke="#b8d6ea"
         stroke-width="6"
       />
-      <text
-        x="${x + w / 2}"
-        y="${y + h / 2}"
-        text-anchor="middle"
-        dominant-baseline="middle"
-        font-size="28"
-        fill="#9fbfd5"
-        pointer-events="none"
-      >${escapeXml(room.label)}</text>
     </g>
   `;
 }
@@ -106,14 +106,45 @@ function renderDoor(door, scale) {
   const h = scaleValue(door.h, scale);
 
   return `
-    <g class="door" data-id="${escapeXml(door.id)}">
+    <g class="door movable" data-type="door" data-id="${escapeXml(door.id)}">
       <rect
         x="${x}"
         y="${y}"
         width="${w}"
         height="${h}"
+        rx="3"
         fill="#ffffff"
         stroke="#8eb9d6"
+        stroke-width="2"
+      />
+    </g>
+  `;
+}
+
+function renderWindow(windowItem, scale) {
+  const x = scaleValue(windowItem.x, scale);
+  const y = scaleValue(windowItem.y, scale);
+  const w = scaleValue(windowItem.w, scale);
+  const h = scaleValue(windowItem.h, scale);
+
+  return `
+    <g class="window movable" data-type="window" data-id="${escapeXml(windowItem.id)}">
+      <rect
+        x="${x}"
+        y="${y}"
+        width="${w}"
+        height="${h}"
+        rx="3"
+        fill="#dbeafe"
+        stroke="#2563eb"
+        stroke-width="2"
+      />
+      <line
+        x1="${x + 4}"
+        y1="${y + h / 2}"
+        x2="${x + w - 4}"
+        y2="${y + h / 2}"
+        stroke="#60a5fa"
         stroke-width="2"
       />
     </g>
@@ -157,7 +188,7 @@ function renderWall(wall, scale) {
   const y2 = scaleValue(wall.y2, scale);
 
   return `
-    <g class="wall" data-id="${escapeXml(wall.id)}">
+    <g class="wall" data-type="wall" data-id="${escapeXml(wall.id)}">
       <line
         class="wall-line"
         x1="${x1}"
@@ -193,6 +224,17 @@ function renderCamera(cam, scale) {
 
   const fovPath = buildFovPath(x, y, angle, fov, rangePx);
 
+  const angleRad = degToRad(angle);
+
+  const rotateHandleDistance = 34;
+  const rotateHx = x + Math.cos(angleRad) * rotateHandleDistance;
+  const rotateHy = y + Math.sin(angleRad) * rotateHandleDistance;
+
+  const fovEdgeRad = degToRad(angle + fov / 2);
+  const fovHandleDistance = 48;
+  const fovHx = x + Math.cos(fovEdgeRad) * fovHandleDistance;
+  const fovHy = y + Math.sin(fovEdgeRad) * fovHandleDistance;
+
   return `
     <g class="camera movable" data-type="camera" data-id="${escapeXml(cam.id)}">
       <path
@@ -203,6 +245,31 @@ function renderCamera(cam, scale) {
         stroke="none"
         pointer-events="none"
       />
+
+      <line
+        class="camera-rotate-line"
+        x1="${x}"
+        y1="${y}"
+        x2="${rotateHx}"
+        y2="${rotateHy}"
+        stroke="#2563eb"
+        stroke-width="2"
+        stroke-dasharray="4 3"
+        pointer-events="none"
+      />
+
+      <line
+        class="camera-fov-line"
+        x1="${x}"
+        y1="${y}"
+        x2="${fovHx}"
+        y2="${fovHy}"
+        stroke="#16a34a"
+        stroke-width="2"
+        stroke-dasharray="4 3"
+        pointer-events="none"
+      />
+
       <circle
         class="camera-hit"
         cx="${x}"
@@ -210,9 +277,33 @@ function renderCamera(cam, scale) {
         r="28"
         fill="transparent"
       />
+
       <circle class="camera-outer" cx="${x}" cy="${y}" r="18" fill="#2f86e6" />
       <circle class="camera-inner" cx="${x}" cy="${y}" r="8" fill="#ffffff" pointer-events="none" />
       <circle class="camera-dot" cx="${x}" cy="${y}" r="4" fill="#2f86e6" pointer-events="none" />
+
+      <circle
+        class="camera-rotate-handle"
+        data-role="rotate-handle"
+        cx="${rotateHx}"
+        cy="${rotateHy}"
+        r="7"
+        fill="#f59e0b"
+        stroke="#ffffff"
+        stroke-width="2"
+      />
+
+      <circle
+        class="camera-fov-handle"
+        data-role="fov-handle"
+        cx="${fovHx}"
+        cy="${fovHy}"
+        r="7"
+        fill="#16a34a"
+        stroke="#ffffff"
+        stroke-width="2"
+      />
+
       <text
         class="camera-label"
         x="${x + 28}"
@@ -325,22 +416,36 @@ function renderCar(car, scale) {
 }
 
 export function generateSvg(plan) {
-  const scale = detectScale(plan);
+  const safePlan = {
+    canvas: plan?.canvas || { width: 14, height: 9 },
+    rooms: Array.isArray(plan?.rooms) ? plan.rooms : [],
+    doors: Array.isArray(plan?.doors) ? plan.doors : [],
+    windows: Array.isArray(plan?.windows) ? plan.windows : [],
+    walls: Array.isArray(plan?.walls) ? plan.walls : [],
+    cameras: Array.isArray(plan?.cameras) ? plan.cameras : [],
+    devices: Array.isArray(plan?.devices) ? plan.devices : [],
+    texts: Array.isArray(plan?.texts) ? plan.texts : [],
+    outsideAreas: Array.isArray(plan?.outsideAreas) ? plan.outsideAreas : [],
+    car: plan?.car || null
+  };
 
-  const rawWidth = Number(plan.canvas?.width) || 14;
-  const rawHeight = Number(plan.canvas?.height) || 9;
+  const scale = detectScale(safePlan);
+
+  const rawWidth = Number(safePlan.canvas?.width) || 14;
+  const rawHeight = Number(safePlan.canvas?.height) || 9;
 
   const width = rawWidth <= 30 ? rawWidth * scale : rawWidth;
   const height = rawHeight <= 30 ? rawHeight * scale : rawHeight;
 
-  const rooms = (plan.rooms || []).map((room) => renderRoom(room, scale)).join("\n");
-  const doors = (plan.doors || []).map((door) => renderDoor(door, scale)).join("\n");
-  const outside = (plan.outsideAreas || []).map((area) => renderOutsideArea(area, scale)).join("\n");
-  const walls = (plan.walls || []).map((wall) => renderWall(wall, scale)).join("\n");
-  const cameras = (plan.cameras || []).map((cam) => renderCamera(cam, scale)).join("\n");
-  const devices = (plan.devices || []).map((device) => renderDevice(device, scale)).join("\n");
-  const texts = (plan.texts || []).map((item) => renderTextItem(item, scale)).join("\n");
-  const car = renderCar(plan.car, scale);
+  const rooms = safePlan.rooms.map((room) => renderRoom(room, scale)).join("\n");
+  const doors = safePlan.doors.map((door) => renderDoor(door, scale)).join("\n");
+  const windows = safePlan.windows.map((item) => renderWindow(item, scale)).join("\n");
+  const outside = safePlan.outsideAreas.map((area) => renderOutsideArea(area, scale)).join("\n");
+  const walls = safePlan.walls.map((wall) => renderWall(wall, scale)).join("\n");
+  const cameras = safePlan.cameras.map((cam) => renderCamera(cam, scale)).join("\n");
+  const devices = safePlan.devices.map((device) => renderDevice(device, scale)).join("\n");
+  const texts = safePlan.texts.map((item) => renderTextItem(item, scale)).join("\n");
+  const car = renderCar(safePlan.car, scale);
 
   return `
 <svg
@@ -353,6 +458,7 @@ export function generateSvg(plan) {
   <rect width="100%" height="100%" fill="#f4f4f4" />
   ${rooms}
   ${doors}
+  ${windows}
   ${outside}
   ${car}
   ${walls}
