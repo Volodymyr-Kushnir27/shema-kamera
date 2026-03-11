@@ -20,15 +20,20 @@ const publicDir = path.join(projectRoot, "public");
 function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
-    "Cache-Control": "no-store"
+    "Cache-Control": "no-store",
   });
   res.end(JSON.stringify(payload));
 }
 
-function sendText(res, statusCode, text, contentType = "text/plain; charset=utf-8") {
+function sendText(
+  res,
+  statusCode,
+  text,
+  contentType = "text/plain; charset=utf-8",
+) {
   res.writeHead(statusCode, {
     "Content-Type": contentType,
-    "Cache-Control": "no-store"
+    "Cache-Control": "no-store",
   });
   res.end(text);
 }
@@ -58,6 +63,10 @@ function getContentType(filePath) {
   if (ext === ".js") return "application/javascript; charset=utf-8";
   if (ext === ".json") return "application/json; charset=utf-8";
   if (ext === ".svg") return "image/svg+xml; charset=utf-8";
+  if (ext === ".png") return "image/png";
+  if (ext === ".ico") return "image/x-icon";
+  if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
+  if (ext === ".webp") return "image/webp";
 
   return "application/octet-stream";
 }
@@ -70,7 +79,7 @@ function serveStaticFile(res, filePath) {
   const content = fs.readFileSync(filePath);
   res.writeHead(200, {
     "Content-Type": getContentType(filePath),
-    "Cache-Control": "no-store"
+    "Cache-Control": "no-store",
   });
   res.end(content);
 }
@@ -128,17 +137,21 @@ const server = http.createServer(async (req, res) => {
   </body>
 </html>
         `.trim(),
-        "text/html; charset=utf-8"
+        "text/html; charset=utf-8",
       );
     }
 
-    if (req.method === "GET" && url.pathname === "/styles.css") {
-      return serveStaticFile(res, path.join(publicDir, "styles.css"));
-    }
+    if (req.method === "GET") {
+  const staticPath = path.join(publicDir, url.pathname);
 
-    if (req.method === "GET" && url.pathname === "/app.js") {
-      return serveStaticFile(res, path.join(publicDir, "app.js"));
-    }
+  if (
+    staticPath.startsWith(publicDir) &&
+    fs.existsSync(staticPath) &&
+    fs.statSync(staticPath).isFile()
+  ) {
+    return serveStaticFile(res, staticPath);
+  }
+}
 
     if (req.method === "GET" && url.pathname === "/api/mock-plan") {
       return sendJson(res, 200, mockPlan);
@@ -152,7 +165,7 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, { svg });
       } catch (error) {
         return sendJson(res, 400, {
-          error: `Некоректний JSON плану: ${error.message}`
+          error: `Некоректний JSON плану: ${error.message}`,
         });
       }
     }
@@ -172,7 +185,7 @@ const server = http.createServer(async (req, res) => {
       } catch (error) {
         console.error("GENERATE ERROR:", error);
         return sendJson(res, 500, {
-          error: error.message || "Помилка генерації плану"
+          error: error.message || "Помилка генерації плану",
         });
       }
     }
@@ -186,13 +199,13 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, {
           "Content-Type": "application/pdf",
           "Content-Disposition": 'attachment; filename="schema-plan.pdf"',
-          "Cache-Control": "no-store"
+          "Cache-Control": "no-store",
         });
         return res.end(pdfBuffer);
       } catch (error) {
         console.error("PDF EXPORT ERROR:", error);
         return sendJson(res, 500, {
-          error: error.message || "Помилка генерації PDF"
+          error: error.message || "Помилка генерації PDF",
         });
       }
     }
@@ -201,7 +214,7 @@ const server = http.createServer(async (req, res) => {
   } catch (error) {
     console.error("SERVER ERROR:", error);
     return sendJson(res, 500, {
-      error: error.message || "Внутрішня помилка сервера"
+      error: error.message || "Внутрішня помилка сервера",
     });
   }
 });
