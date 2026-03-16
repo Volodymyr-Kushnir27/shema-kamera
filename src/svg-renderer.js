@@ -27,7 +27,7 @@ function detectScale(plan) {
       Number(windowItem.x),
       Number(windowItem.y),
       Number(windowItem.w),
-      Number(windowItem.h)
+      Number(windowItem.h),
     );
   }
 
@@ -40,11 +40,21 @@ function detectScale(plan) {
   }
 
   for (const wall of plan.walls || []) {
-    values.push(Number(wall.x1), Number(wall.y1), Number(wall.x2), Number(wall.y2));
+    values.push(
+      Number(wall.x1),
+      Number(wall.y1),
+      Number(wall.x2),
+      Number(wall.y2),
+    );
   }
 
   for (const device of plan.devices || []) {
-    values.push(Number(device.x), Number(device.y), Number(device.w), Number(device.h));
+    values.push(
+      Number(device.x),
+      Number(device.y),
+      Number(device.w),
+      Number(device.h),
+    );
   }
 
   for (const text of plan.texts || []) {
@@ -52,7 +62,12 @@ function detectScale(plan) {
   }
 
   if (plan.car) {
-    values.push(Number(plan.car.x), Number(plan.car.y), Number(plan.car.w), Number(plan.car.h));
+    values.push(
+      Number(plan.car.x),
+      Number(plan.car.y),
+      Number(plan.car.w),
+      Number(plan.car.h),
+    );
   }
 
   const filtered = values.filter((v) => Number.isFinite(v));
@@ -233,14 +248,50 @@ function renderWall(wall, scale) {
   `;
 }
 
+function pointOnCircle(cx, cy, radius, deg) {
+  const rad = degToRad(deg);
+  return {
+    x: cx + Math.cos(rad) * radius,
+    y: cy + Math.sin(rad) * radius,
+  };
+}
+
+function buildArcLinePath(cx, cy, radius, startDeg, endDeg) {
+  const p1 = pointOnCircle(cx, cy, radius, startDeg);
+  const p2 = pointOnCircle(cx, cy, radius, endDeg);
+  const largeArc = Math.abs(endDeg - startDeg) > 180 ? 1 : 0;
+
+  return `M ${p1.x} ${p1.y} A ${radius} ${radius} 0 ${largeArc} 1 ${p2.x} ${p2.y}`;
+}
+
+function fmtMeters(value) {
+  return `${Number(value || 0).toFixed(1)}`;
+}
+
+function fmtDegrees(value) {
+  return `${Math.round(Number(value || 0))}°`;
+}
+
 function renderCamera(cam, scale) {
   const x = scaleValue(cam.x, scale);
   const y = scaleValue(cam.y, scale);
-  const rangePx = scaleValue(cam.range ?? 3, scale);
+
+  const range = Number(cam.range ?? 3);
+  const rangePx = scaleValue(range, scale);
+
   const angle = Number(cam.angle ?? 90);
   const fov = Number(cam.fov ?? 70);
 
+  const startDeg = angle - fov / 2;
+  const endDeg = angle + fov / 2;
+
   const fovPath = buildFovPath(x, y, angle, fov, rangePx);
+  const fovArcPath = buildArcLinePath(x, y, rangePx * 0.78, startDeg, endDeg);
+
+  const centerPoint = pointOnCircle(x, y, rangePx, angle);
+  const rangeLabelPoint = pointOnCircle(x, y, rangePx * 0.58, angle);
+  const fovLabelPoint = pointOnCircle(x, y, rangePx * 0.42, angle);
+  const angleLabelPoint = pointOnCircle(x, y, 56, angle);
 
   const angleRad = degToRad(angle);
 
@@ -248,10 +299,13 @@ function renderCamera(cam, scale) {
   const rotateHx = x + Math.cos(angleRad) * rotateHandleDistance;
   const rotateHy = y + Math.sin(angleRad) * rotateHandleDistance;
 
-  const fovEdgeRad = degToRad(angle + fov / 2);
-  const fovHandleDistance = 48;
+  const fovEdgeRad = degToRad(endDeg);
+  const fovHandleDistance = rangePx * 0.82;
   const fovHx = x + Math.cos(fovEdgeRad) * fovHandleDistance;
   const fovHy = y + Math.sin(fovEdgeRad) * fovHandleDistance;
+
+  const rangeHx = centerPoint.x;
+  const rangeHy = centerPoint.y;
 
   return `
     <g class="camera movable" data-type="camera" data-id="${escapeXml(cam.id)}">
@@ -259,8 +313,30 @@ function renderCamera(cam, scale) {
         class="camera-fov"
         d="${fovPath}"
         fill="#6eaef0"
-        fill-opacity="0.16"
-        stroke="none"
+        fill-opacity="0.20"
+        stroke="#7ec6f5"
+        stroke-width="3"
+      />
+
+      <path
+        class="camera-fov-arc"
+        d="${fovArcPath}"
+        fill="none"
+        stroke="#1d9bf0"
+        stroke-width="4"
+        stroke-dasharray="10 8"
+        pointer-events="none"
+      />
+
+      <line
+        class="camera-center-line"
+        x1="${x}"
+        y1="${y}"
+        x2="${centerPoint.x}"
+        y2="${centerPoint.y}"
+        stroke="#7ec6f5"
+        stroke-width="5"
+        stroke-dasharray="12 10"
         pointer-events="none"
       />
 
@@ -288,17 +364,87 @@ function renderCamera(cam, scale) {
         pointer-events="none"
       />
 
-      <circle
-        class="camera-hit"
-        cx="${x}"
-        cy="${y}"
-        r="28"
+      <line
+        class="camera-range-line"
+        x1="${x}"
+        y1="${y}"
+        x2="${rangeHx}"
+        y2="${rangeHy}"
+        stroke="#0891b2"
+        stroke-width="2"
+        stroke-dasharray="5 4"
+        opacity="0.75"
+        pointer-events="none"
+      />
+
+        <rect
+         class="camera-hit"
+         x="${x - 24}"
+         y="${y - 18}"
+         width="48"
+          height="40"
+         rx="10"
         fill="transparent"
       />
 
-      <circle class="camera-outer" cx="${x}" cy="${y}" r="18" fill="#2f86e6" />
-      <circle class="camera-inner" cx="${x}" cy="${y}" r="8" fill="#ffffff" pointer-events="none" />
-      <circle class="camera-dot" cx="${x}" cy="${y}" r="4" fill="#2f86e6" pointer-events="none" />
+      <g class="camera-icon" pointer-events="none">
+  <line
+    x1="${x - 10}"
+    y1="${y + 10}"
+    x2="${x - 18}"
+    y2="${y + 20}"
+    stroke="#5b6472"
+    stroke-width="4"
+    stroke-linecap="round"
+  />
+  <line
+    x1="${x - 18}"
+    y1="${y + 20}"
+    x2="${x - 6}"
+    y2="${y + 20}"
+    stroke="#5b6472"
+    stroke-width="4"
+    stroke-linecap="round"
+  />
+
+  <rect
+    x="${x - 16}"
+    y="${y - 9}"
+    width="24"
+    height="18"
+    rx="5"
+    fill="#2f86e6"
+    stroke="#1d4ed8"
+    stroke-width="2"
+  />
+
+  <rect
+    x="${x + 7}"
+    y="${y - 5}"
+    width="8"
+    height="10"
+    rx="2"
+    fill="#60a5fa"
+    stroke="#1d4ed8"
+    stroke-width="2"
+  />
+
+  <circle
+    cx="${x - 4}"
+    cy="${y}"
+    r="5.5"
+    fill="#ffffff"
+    stroke="#1d4ed8"
+    stroke-width="2"
+  />
+
+  <circle
+    cx="${x - 4}"
+    cy="${y}"
+    r="2.2"
+    fill="#1d4ed8"
+  />
+</g>
 
       <circle
         class="camera-rotate-handle"
@@ -322,14 +468,55 @@ function renderCamera(cam, scale) {
         stroke-width="2"
       />
 
+      <circle
+        class="camera-range-handle"
+        data-role="range-handle"
+        cx="${rangeHx}"
+        cy="${rangeHy}"
+        r="7"
+        fill="#0891b2"
+        stroke="#ffffff"
+        stroke-width="2"
+      />
+
+     <text
+  class="camera-label"
+  x="${x + 22}"
+  y="${y - 14}"
+  font-size="18"
+  font-weight="700"
+  fill="#24479a"
+>${escapeXml(cam.label)}</text>
+
       <text
-        class="camera-label"
-        x="${x + 28}"
-        y="${y + 6}"
-        font-size="18"
-        fill="#2f86e6"
-        pointer-events="none"
-      >${escapeXml(cam.label)}</text>
+        class="camera-fov-value"
+        x="${fovLabelPoint.x}"
+        y="${fovLabelPoint.y}"
+        text-anchor="middle"
+        font-size="16"
+        font-weight="700"
+        fill="#0f6aa1"
+      >${escapeXml(fmtDegrees(fov))}</text>
+
+      <text
+        class="camera-range-value"
+        x="${rangeLabelPoint.x}"
+        y="${rangeLabelPoint.y - 6}"
+        text-anchor="middle"
+        font-size="16"
+        font-weight="700"
+        fill="#0f8ab2"
+      >${escapeXml(fmtMeters(range))}</text>
+
+      <text
+        class="camera-angle-value"
+        x="${angleLabelPoint.x}"
+        y="${angleLabelPoint.y - 10}"
+        text-anchor="middle"
+        font-size="14"
+        font-weight="700"
+        fill="#2563eb"
+      >${escapeXml(fmtDegrees(angle))}</text>
     </g>
   `;
 }
@@ -344,7 +531,7 @@ function renderDevice(device, scale) {
     server: "#7c3aed",
     nvr: "#0f766e",
     battery: "#b45309",
-    router: "#2563eb"
+    router: "#2563eb",
   };
 
   const fill = colors[device.type] || "#475569";
@@ -435,7 +622,7 @@ function renderCar(car, scale) {
 
 export function generateSvg(plan) {
   const safePlan = {
-    canvas: plan?.canvas || { width: 14, height: 9 },
+    canvas: plan?.canvas || { width: 18, height: 12 },
     rooms: Array.isArray(plan?.rooms) ? plan.rooms : [],
     doors: Array.isArray(plan?.doors) ? plan.doors : [],
     windows: Array.isArray(plan?.windows) ? plan.windows : [],
@@ -444,36 +631,65 @@ export function generateSvg(plan) {
     devices: Array.isArray(plan?.devices) ? plan.devices : [],
     texts: Array.isArray(plan?.texts) ? plan.texts : [],
     outsideAreas: Array.isArray(plan?.outsideAreas) ? plan.outsideAreas : [],
-    car: plan?.car || null
+    car: plan?.car || null,
   };
 
   const scale = detectScale(safePlan);
 
-  const rawWidth = Number(safePlan.canvas?.width) || 14;
-  const rawHeight = Number(safePlan.canvas?.height) || 9;
+const rawWidth = Number(safePlan.canvas?.width) || 14;
+const rawHeight = Number(safePlan.canvas?.height) || 9;
 
-  const width = rawWidth <= 30 ? rawWidth * scale : rawWidth;
-  const height = rawHeight <= 30 ? rawHeight * scale : rawHeight;
+const baseWidth = rawWidth <= 30 ? rawWidth * scale : rawWidth;
+const baseHeight = rawHeight <= 30 ? rawHeight * scale : rawHeight;
 
-  const rooms = safePlan.rooms.map((room) => renderRoom(room, scale)).join("\n");
-  const doors = safePlan.doors.map((door) => renderDoor(door, scale)).join("\n");
-  const windows = safePlan.windows.map((item) => renderWindow(item, scale)).join("\n");
-  const outside = safePlan.outsideAreas.map((area) => renderOutsideArea(area, scale)).join("\n");
-  const walls = safePlan.walls.map((wall) => renderWall(wall, scale)).join("\n");
-  const cameras = safePlan.cameras.map((cam) => renderCamera(cam, scale)).join("\n");
-  const devices = safePlan.devices.map((device) => renderDevice(device, scale)).join("\n");
-  const texts = safePlan.texts.map((item) => renderTextItem(item, scale)).join("\n");
+const padding = Math.max(220, Math.round(scaleValue(2.6, scale)));
+
+const viewX = -padding;
+const viewY = -padding;
+const viewWidth = baseWidth + padding * 2;
+const viewHeight = baseHeight + padding * 2;
+
+  const rooms = safePlan.rooms
+    .map((room) => renderRoom(room, scale))
+    .join("\n");
+  const doors = safePlan.doors
+    .map((door) => renderDoor(door, scale))
+    .join("\n");
+  const windows = safePlan.windows
+    .map((item) => renderWindow(item, scale))
+    .join("\n");
+  const outside = safePlan.outsideAreas
+    .map((area) => renderOutsideArea(area, scale))
+    .join("\n");
+  const walls = safePlan.walls
+    .map((wall) => renderWall(wall, scale))
+    .join("\n");
+  const cameras = safePlan.cameras
+    .map((cam) => renderCamera(cam, scale))
+    .join("\n");
+  const devices = safePlan.devices
+    .map((device) => renderDevice(device, scale))
+    .join("\n");
+  const texts = safePlan.texts
+    .map((item) => renderTextItem(item, scale))
+    .join("\n");
   const car = renderCar(safePlan.car, scale);
 
   return `
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  width="${width}"
-  height="${height}"
-  viewBox="0 0 ${width} ${height}"
+  width="${viewWidth}"
+  height="${viewHeight}"
+  viewBox="${viewX} ${viewY} ${viewWidth} ${viewHeight}"
   data-scale="${scale}"
 >
-  <rect width="100%" height="100%" fill="#f4f4f4" />
+  <rect
+    x="${viewX}"
+    y="${viewY}"
+    width="${viewWidth}"
+    height="${viewHeight}"
+    fill="#f4f4f4"
+  />
   ${rooms}
   ${doors}
   ${windows}

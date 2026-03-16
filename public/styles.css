@@ -11,34 +11,36 @@ body {
 
 .layout {
   display: grid;
-  grid-template-columns: 560px 1fr;
+  grid-template-columns: minmax(360px, 400px) minmax(0, 1fr);
   min-height: 100vh;
 }
 
 .sidebar {
   background: #ffffff;
   border-right: 1px solid #d9e2ec;
-  padding: 20px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
+  max-height: 100vh;
+  overflow: auto;
 }
 
 .title {
   margin: 0;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
 }
 
 .sub {
   margin: 0;
-  font-size: 14px;
+  font-size: 12px;
   color: #6b7280;
-  line-height: 1.45;
+  line-height: 1.4;
 }
 
 .label {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -46,10 +48,10 @@ textarea {
   width: 100%;
   border: 1px solid #cbd5e1;
   border-radius: 12px;
-  padding: 14px;
+  padding: 12px;
   font-family: Menlo, Monaco, monospace;
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: 12px;
+  line-height: 1.4;
   outline: none;
   background: #f8fafc;
   resize: vertical;
@@ -61,18 +63,20 @@ textarea:focus {
 }
 
 #promptInput {
-  min-height: 120px;
+  min-height: 78px;
+  max-height: 120px;
 }
 
 #jsonInput {
-  min-height: 330px;
+  min-height: 200px;
+  max-height: 280px;
 }
 
 .grid1,
 .grid2,
 .grid3 {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .grid1 {
@@ -90,8 +94,8 @@ textarea:focus {
 button {
   border: none;
   border-radius: 10px;
-  padding: 12px 16px;
-  font-size: 14px;
+  padding: 10px 12px;
+  font-size: 13px;
   cursor: pointer;
   transition: background 0.15s ease, opacity 0.15s ease, transform 0.05s ease;
 }
@@ -140,9 +144,9 @@ button:active {
 }
 
 .status {
-  min-height: 20px;
-  font-size: 14px;
-  line-height: 1.4;
+  min-height: 18px;
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 .status.ok {
@@ -158,25 +162,26 @@ button:active {
 }
 
 .hint {
-  font-size: 13px;
+  font-size: 12px;
   color: #64748b;
-  line-height: 1.5;
+  line-height: 1.45;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 12px;
+  padding: 10px;
 }
 
 .main {
-  padding: 20px;
+  padding: 12px;
+  min-width: 0;
 }
 
 .preview-card {
   background: #ffffff;
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-  padding: 16px;
-  min-height: calc(100vh - 40px);
+  padding: 12px;
+  min-height: calc(100vh - 24px);
 }
 
 .preview-header {
@@ -184,12 +189,12 @@ button:active {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .preview-header h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .mode-label {
@@ -202,9 +207,9 @@ button:active {
   position: relative;
   background: #f3f4f6;
   border-radius: 12px;
-  padding: 16px;
+  padding: 8px;
   overflow: auto;
-  min-height: 80vh;
+  min-height: calc(100vh - 100px);
 }
 
 .preview-wrap.crosshair,
@@ -215,6 +220,10 @@ button:active {
 .preview-wrap.delete-mode,
 .preview-wrap.delete-mode * {
   cursor: not-allowed !important;
+}
+
+#svgPreview {
+  min-width: 0;
 }
 
 #svgPreview svg {
@@ -240,8 +249,9 @@ button:active {
 .selected-for-move .device-rect,
 .selected-for-move .custom-text,
 .selected-for-move rect,
-.selected-for-move line {
-  filter: drop-shadow(0 0 6px rgba(37, 99, 235, 0.6));
+.selected-for-move line,
+.selected-for-move path {
+  filter: drop-shadow(0 0 6px rgba(37, 99, 235, 0.45));
   stroke: #2563eb;
   stroke-width: 2;
 }
@@ -253,17 +263,22 @@ button:active {
 }
 
 .camera-rotate-handle,
-.camera-fov-handle {
+.camera-fov-handle,
+.camera-range-handle {
   cursor: grab;
 }
 
 .camera-rotate-handle:active,
-.camera-fov-handle:active {
+.camera-fov-handle:active,
+.camera-range-handle:active {
   cursor: grabbing;
 }
 
 .camera-fov,
 .camera-label,
+.camera-fov-value,
+.camera-range-value,
+.camera-angle-value,
 .device-label,
 .custom-text {
   pointer-events: none;
@@ -271,12 +286,12 @@ button:active {
 
 .floating-tools {
   position: absolute;
-  right: 18px;
-  bottom: 18px;
+  right: 12px;
+  bottom: 12px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 10px;
+  gap: 8px;
   z-index: 20;
 }
 
@@ -288,20 +303,38 @@ button:active {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .move-row {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .move-pad .floating-btn {
-  min-width: 52px;
-  min-height: 44px;
-  padding: 10px 14px;
-  font-size: 18px;
+  min-width: 46px;
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 16px;
   font-weight: 700;
+}
+
+.preview-wrap {
+  position: relative;
+  background: #f3f4f6;
+  border-radius: 12px;
+  padding: 12px;
+  overflow: auto;
+  min-height: calc(100vh - 100px);
+}
+
+#svgPreview {
+  min-width: max-content;
+  min-height: 100%;
+}
+
+#svgPreview svg {
+  display: block;
 }
 
 @media (max-width: 1180px) {
@@ -312,6 +345,7 @@ button:active {
   .sidebar {
     border-right: none;
     border-bottom: 1px solid #d9e2ec;
+    max-height: none;
   }
 
   .main {
@@ -320,5 +354,9 @@ button:active {
 
   .preview-card {
     min-height: auto;
+  }
+
+  .preview-wrap {
+    min-height: 70vh;
   }
 }

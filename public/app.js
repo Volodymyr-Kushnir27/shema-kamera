@@ -36,6 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let pendingWallPoint = null;
   let rotatingCameraId = null;
   let editingFovCameraId = null;
+  let editingRangeCameraId = null;
   let allSelected = false;
 
   const DEVICE_SIZE = { w: 0.3, h: 0.3 };
@@ -78,7 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
       devices: [],
       texts: [],
       outsideAreas: [],
-      car: null
+      car: null,
     };
   }
 
@@ -130,7 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
       device: `.device[data-id="${id}"]`,
       text: `.text-item[data-id="${id}"]`,
       door: `.door[data-id="${id}"]`,
-      window: `.window[data-id="${id}"]`
+      window: `.window[data-id="${id}"]`,
     };
 
     const selector = selectorMap[type];
@@ -146,7 +147,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     const handle = svgPreview.querySelector(
-      `.wall[data-id="${wallId}"] .wall-handle[data-end="${end}"]`
+      `.wall[data-id="${wallId}"] .wall-handle[data-end="${end}"]`,
     );
 
     if (handle) handle.classList.add("selected-handle");
@@ -164,12 +165,15 @@ document.addEventListener("DOMContentLoaded", () => {
       "add-battery": "Режим: додавання АКБ",
       "add-router": "Режим: додавання роутера",
       "add-text": "Режим: додавання тексту",
-      delete: "Режим: видалення"
+      delete: "Режим: видалення",
     };
 
     modeLabel.textContent = map[mode] || "Режим: звичайний";
 
-    previewWrap.classList.toggle("crosshair", mode !== "normal" && mode !== "delete");
+    previewWrap.classList.toggle(
+      "crosshair",
+      mode !== "normal" && mode !== "delete",
+    );
     previewWrap.classList.toggle("delete-mode", mode === "delete");
 
     addCameraBtn.classList.toggle("active-mode", mode === "add-camera");
@@ -247,7 +251,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const response = await fetch("/api/render-plan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(plan)
+      body: JSON.stringify(plan),
     });
 
     const data = await response.json();
@@ -263,21 +267,24 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function eventToPlanCoords(event) {
-    const svg = svgPreview.querySelector("svg");
-    if (!svg) return null;
+  const svg = svgPreview.querySelector("svg");
+  if (!svg) return null;
 
-    const rect = svg.getBoundingClientRect();
-    const viewBox = svg.viewBox.baseVal;
-    const scale = Number(svg.dataset.scale || 1);
+  const rect = svg.getBoundingClientRect();
+  const viewBox = svg.viewBox.baseVal;
+  const scale = Number(svg.dataset.scale || 1);
 
-    const x = ((event.clientX - rect.left) / rect.width) * viewBox.width;
-    const y = ((event.clientY - rect.top) / rect.height) * viewBox.height;
+  const normalizedX = (event.clientX - rect.left) / rect.width;
+  const normalizedY = (event.clientY - rect.top) / rect.height;
 
-    return {
-      x: +(x / scale).toFixed(2),
-      y: +(y / scale).toFixed(2)
-    };
-  }
+  const x = viewBox.x + normalizedX * viewBox.width;
+  const y = viewBox.y + normalizedY * viewBox.height;
+
+  return {
+    x: +(x / scale).toFixed(2),
+    y: +(y / scale).toFixed(2),
+  };
+}
 
   function angleFromCameraToPoint(camera, point) {
     const dx = point.x - camera.x;
@@ -319,6 +326,18 @@ document.addEventListener("DOMContentLoaded", () => {
     return +fov.toFixed(1);
   }
 
+  function rangeFromCameraToPoint(camera, point) {
+  const dx = point.x - camera.x;
+  const dy = point.y - camera.y;
+
+  let range = Math.sqrt(dx * dx + dy * dy);
+
+  if (range < 0.5) range = 0.5;
+  if (range > 20) range = 20;
+
+  return +range.toFixed(1);
+}
+
   function startCameraRotation(cameraId) {
     rotatingCameraId = cameraId;
     setStatus("Обертання камери: рухайте мишкою.", "info");
@@ -342,6 +361,18 @@ document.addEventListener("DOMContentLoaded", () => {
       setStatus("Кут огляду оновлено.", "ok");
     }
   }
+
+  function startRangeEdit(cameraId) {
+  editingRangeCameraId = cameraId;
+  setStatus("Зміна дальності: рухайте мишкою.", "info");
+}
+
+function stopRangeEdit() {
+  if (editingRangeCameraId) {
+    editingRangeCameraId = null;
+    setStatus("Дальність огляду оновлено.", "ok");
+  }
+}
 
   async function moveSelectedTo(point) {
     if (!selectedMoveTarget || !point) return false;
@@ -371,26 +402,26 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (selectedMoveTarget.type === "door") {
-  const item = findDoorById(selectedMoveTarget.id);
-  if (item) {
-    const w = Number(item.w || 1);
-    const h = Number(item.h || 0.3);
+      const item = findDoorById(selectedMoveTarget.id);
+      if (item) {
+        const w = Number(item.w || 1);
+        const h = Number(item.h || 0.3);
 
-    item.x = +(point.x - w / 2).toFixed(2);
-    item.y = +(point.y - h / 2).toFixed(2);
-  }
-}
+        item.x = +(point.x - w / 2).toFixed(2);
+        item.y = +(point.y - h / 2).toFixed(2);
+      }
+    }
 
-if (selectedMoveTarget.type === "window") {
-  const item = findWindowById(selectedMoveTarget.id);
-  if (item) {
-    const w = Number(item.w || 1.2);
-    const h = Number(item.h || 0.22);
+    if (selectedMoveTarget.type === "window") {
+      const item = findWindowById(selectedMoveTarget.id);
+      if (item) {
+        const w = Number(item.w || 1.2);
+        const h = Number(item.h || 0.22);
 
-    item.x = +(point.x - w / 2).toFixed(2);
-    item.y = +(point.y - h / 2).toFixed(2);
-  }
-}
+        item.x = +(point.x - w / 2).toFixed(2);
+        item.y = +(point.y - h / 2).toFixed(2);
+      }
+    }
 
     syncJson();
     clearSelection();
@@ -470,27 +501,27 @@ if (selectedMoveTarget.type === "window") {
   }
 
   async function rotateDoorOrWindowBy90(type, id) {
-  if (type === "door") {
-    const item = findDoorById(id);
-    if (!item) return;
+    if (type === "door") {
+      const item = findDoorById(id);
+      if (!item) return;
 
-    item.rotation = ((Number(item.rotation) || 0) + 90) % 360;
-    syncJson();
-    await renderPlan();
-    setStatus("Двері повернуто на 90°.", "ok");
-    return;
+      item.rotation = ((Number(item.rotation) || 0) + 90) % 360;
+      syncJson();
+      await renderPlan();
+      setStatus("Двері повернуто на 90°.", "ok");
+      return;
+    }
+
+    if (type === "window") {
+      const item = findWindowById(id);
+      if (!item) return;
+
+      item.rotation = ((Number(item.rotation) || 0) + 90) % 360;
+      syncJson();
+      await renderPlan();
+      setStatus("Вікно повернуто на 90°.", "ok");
+    }
   }
-
-  if (type === "window") {
-    const item = findWindowById(id);
-    if (!item) return;
-
-    item.rotation = ((Number(item.rotation) || 0) + 90) % 360;
-    syncJson();
-    await renderPlan();
-    setStatus("Вікно повернуто на 90°.", "ok");
-  }
-}
 
   function shiftValue(value, delta) {
     return +(Number(value || 0) + delta).toFixed(2);
@@ -505,37 +536,37 @@ if (selectedMoveTarget.type === "window") {
     plan.rooms = plan.rooms.map((room) => ({
       ...room,
       x: shiftValue(room.x, dx),
-      y: shiftValue(room.y, dy)
+      y: shiftValue(room.y, dy),
     }));
 
     plan.doors = plan.doors.map((item) => ({
       ...item,
       x: shiftValue(item.x, dx),
-      y: shiftValue(item.y, dy)
+      y: shiftValue(item.y, dy),
     }));
 
     plan.windows = plan.windows.map((item) => ({
       ...item,
       x: shiftValue(item.x, dx),
-      y: shiftValue(item.y, dy)
+      y: shiftValue(item.y, dy),
     }));
 
     plan.cameras = plan.cameras.map((item) => ({
       ...item,
       x: shiftValue(item.x, dx),
-      y: shiftValue(item.y, dy)
+      y: shiftValue(item.y, dy),
     }));
 
     plan.devices = plan.devices.map((item) => ({
       ...item,
       x: shiftValue(item.x, dx),
-      y: shiftValue(item.y, dy)
+      y: shiftValue(item.y, dy),
     }));
 
     plan.texts = plan.texts.map((item) => ({
       ...item,
       x: shiftValue(item.x, dx),
-      y: shiftValue(item.y, dy)
+      y: shiftValue(item.y, dy),
     }));
 
     plan.walls = plan.walls.map((item) => ({
@@ -543,20 +574,20 @@ if (selectedMoveTarget.type === "window") {
       x1: shiftValue(item.x1, dx),
       y1: shiftValue(item.y1, dy),
       x2: shiftValue(item.x2, dx),
-      y2: shiftValue(item.y2, dy)
+      y2: shiftValue(item.y2, dy),
     }));
 
     plan.outsideAreas = plan.outsideAreas.map((item) => ({
       ...item,
       x: shiftValue(item.x, dx),
-      y: shiftValue(item.y, dy)
+      y: shiftValue(item.y, dy),
     }));
 
     if (plan.car) {
       plan.car = {
         ...plan.car,
         x: shiftValue(plan.car.x, dx),
-        y: shiftValue(plan.car.y, dy)
+        y: shiftValue(plan.car.y, dy),
       };
     }
 
@@ -573,7 +604,7 @@ if (selectedMoveTarget.type === "window") {
       const response = await fetch("/api/export-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(plan)
+        body: JSON.stringify(plan),
       });
 
       if (!response.ok) {
@@ -604,83 +635,110 @@ if (selectedMoveTarget.type === "window") {
     const svg = svgPreview.querySelector("svg");
     if (!svg) return;
 
-    svg.onmousedown = (event) => {
-      const rotateHandle = event.target.closest(".camera-rotate-handle");
-      if (rotateHandle) {
-        const cameraNode = rotateHandle.closest(".camera");
-        const cameraId = cameraNode?.dataset?.id;
-        if (!cameraId) return;
+   svg.onmousedown = (event) => {
+  const rotateHandle = event.target.closest(".camera-rotate-handle");
+  if (rotateHandle) {
+    const cameraNode = rotateHandle.closest(".camera");
+    const cameraId = cameraNode?.dataset?.id;
+    if (!cameraId) return;
 
-        startCameraRotation(cameraId);
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }
-
-      const fovHandle = event.target.closest(".camera-fov-handle");
-      if (fovHandle) {
-        const cameraNode = fovHandle.closest(".camera");
-        const cameraId = cameraNode?.dataset?.id;
-        if (!cameraId) return;
-
-        startFovEdit(cameraId);
-        event.preventDefault();
-        event.stopPropagation();
-      }
-    };
-
-    svg.onmousemove = async (event) => {
-      if (rotatingCameraId) {
-        const point = eventToPlanCoords(event);
-        if (!point) return;
-
-        const camera = findCameraById(rotatingCameraId);
-        if (!camera) return;
-
-        camera.angle = angleFromCameraToPoint(camera, point);
-        syncJson();
-        await renderPlan();
-        return;
-      }
-
-      if (editingFovCameraId) {
-        const point = eventToPlanCoords(event);
-        if (!point) return;
-
-        const camera = findCameraById(editingFovCameraId);
-        if (!camera) return;
-
-        camera.fov = fovFromCameraToPoint(camera, point);
-        syncJson();
-        await renderPlan();
-      }
-    };
-
-    svg.onmouseup = () => {
-      stopCameraRotation();
-      stopFovEdit();
-    };
-
-    svg.onmouseleave = () => {
-      stopCameraRotation();
-      stopFovEdit();
-    };
-
-      svg.ondblclick = async (event) => {
-    const targetNode = getTargetFromEventTarget(event.target);
-    const targetType = getTargetType(targetNode);
-    const targetId = targetNode?.dataset?.id || null;
-
-    if (!targetType || !targetId) return;
-    if (!["door", "window"].includes(targetType)) return;
-
-    await rotateDoorOrWindowBy90(targetType, targetId);
+    startCameraRotation(cameraId);
     event.preventDefault();
     event.stopPropagation();
-  };
+    return;
+  }
+
+  const fovHandle = event.target.closest(".camera-fov-handle");
+  if (fovHandle) {
+    const cameraNode = fovHandle.closest(".camera");
+    const cameraId = cameraNode?.dataset?.id;
+    if (!cameraId) return;
+
+    startFovEdit(cameraId);
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
+
+  const rangeHandle = event.target.closest(".camera-range-handle");
+  if (rangeHandle) {
+    const cameraNode = rangeHandle.closest(".camera");
+    const cameraId = cameraNode?.dataset?.id;
+    if (!cameraId) return;
+
+    startRangeEdit(cameraId);
+    event.preventDefault();
+    event.stopPropagation();
+  }
+};
+
+    svg.onmousemove = async (event) => {
+  if (rotatingCameraId) {
+    const point = eventToPlanCoords(event);
+    if (!point) return;
+
+    const camera = findCameraById(rotatingCameraId);
+    if (!camera) return;
+
+    camera.angle = angleFromCameraToPoint(camera, point);
+    syncJson();
+    await renderPlan();
+    return;
+  }
+
+  if (editingFovCameraId) {
+    const point = eventToPlanCoords(event);
+    if (!point) return;
+
+    const camera = findCameraById(editingFovCameraId);
+    if (!camera) return;
+
+    camera.fov = fovFromCameraToPoint(camera, point);
+    syncJson();
+    await renderPlan();
+    return;
+  }
+
+  if (editingRangeCameraId) {
+    const point = eventToPlanCoords(event);
+    if (!point) return;
+
+    const camera = findCameraById(editingRangeCameraId);
+    if (!camera) return;
+
+    camera.range = rangeFromCameraToPoint(camera, point);
+    syncJson();
+    await renderPlan();
+  }
+};
+
+   svg.onmouseup = () => {
+  stopCameraRotation();
+  stopFovEdit();
+  stopRangeEdit();
+};
+
+svg.onmouseleave = () => {
+  stopCameraRotation();
+  stopFovEdit();
+  stopRangeEdit();
+};
+
+    svg.ondblclick = async (event) => {
+      const targetNode = getTargetFromEventTarget(event.target);
+      const targetType = getTargetType(targetNode);
+      const targetId = targetNode?.dataset?.id || null;
+
+      if (!targetType || !targetId) return;
+      if (!["door", "window"].includes(targetType)) return;
+
+      await rotateDoorOrWindowBy90(targetType, targetId);
+      event.preventDefault();
+      event.stopPropagation();
+    };
 
     svg.onclick = async (event) => {
-      if (rotatingCameraId || editingFovCameraId) return;
+  if (rotatingCameraId || editingFovCameraId || editingRangeCameraId) return;
 
       const point = eventToPlanCoords(event);
       if (!point) return;
@@ -731,7 +789,7 @@ if (selectedMoveTarget.type === "window") {
 
         selectedWallHandle = {
           id: wallId,
-          end: targetEnd
+          end: targetEnd,
         };
 
         highlightWallHandle(wallId, targetEnd);
@@ -750,7 +808,7 @@ if (selectedMoveTarget.type === "window") {
 
         selectedMoveTarget = {
           type: targetType,
-          id: targetId
+          id: targetId,
         };
 
         highlightSelected(targetType, targetId);
@@ -766,7 +824,7 @@ if (selectedMoveTarget.type === "window") {
           y: point.y,
           angle: 90,
           fov: 70,
-          range: 3
+          range: 3.2,
         });
 
         syncJson();
@@ -777,14 +835,14 @@ if (selectedMoveTarget.type === "window") {
       }
 
       if (mode === "add-door") {
-  plan.doors.push({
-    id: uid("door"),
-    label: `Двері ${plan.doors.length + 1}`,
-    x: point.x,
-    y: point.y,
-    rotation: 0,
-    ...DEFAULT_DOOR
-  });
+        plan.doors.push({
+          id: uid("door"),
+          label: `Двері ${plan.doors.length + 1}`,
+          x: point.x,
+          y: point.y,
+          rotation: 0,
+          ...DEFAULT_DOOR,
+        });
 
         syncJson();
         await renderPlan();
@@ -794,14 +852,14 @@ if (selectedMoveTarget.type === "window") {
       }
 
       if (mode === "add-window") {
-  plan.windows.push({
-    id: uid("window"),
-    label: `Вікно ${plan.windows.length + 1}`,
-    x: point.x,
-    y: point.y,
-    rotation: 0,
-    ...DEFAULT_WINDOW
-  });
+        plan.windows.push({
+          id: uid("window"),
+          label: `Вікно ${plan.windows.length + 1}`,
+          x: point.x,
+          y: point.y,
+          rotation: 0,
+          ...DEFAULT_WINDOW,
+        });
 
         syncJson();
         await renderPlan();
@@ -817,7 +875,7 @@ if (selectedMoveTarget.type === "window") {
           label: "Сервер",
           x: point.x,
           y: point.y,
-          ...DEVICE_SIZE
+          ...DEVICE_SIZE,
         });
 
         syncJson();
@@ -834,7 +892,7 @@ if (selectedMoveTarget.type === "window") {
           label: "Реєстратор",
           x: point.x,
           y: point.y,
-          ...DEVICE_SIZE
+          ...DEVICE_SIZE,
         });
 
         syncJson();
@@ -851,7 +909,7 @@ if (selectedMoveTarget.type === "window") {
           label: "АКБ",
           x: point.x,
           y: point.y,
-          ...DEVICE_SIZE
+          ...DEVICE_SIZE,
         });
 
         syncJson();
@@ -868,7 +926,7 @@ if (selectedMoveTarget.type === "window") {
           label: "Роутер",
           x: point.x,
           y: point.y,
-          ...DEVICE_SIZE
+          ...DEVICE_SIZE,
         });
 
         syncJson();
@@ -888,7 +946,7 @@ if (selectedMoveTarget.type === "window") {
             x: point.x,
             y: point.y,
             fontSize: 18,
-            color: "#334155"
+            color: "#334155",
           });
 
           syncJson();
@@ -914,7 +972,7 @@ if (selectedMoveTarget.type === "window") {
           x1: pendingWallPoint.x,
           y1: pendingWallPoint.y,
           x2: point.x,
-          y2: point.y
+          y2: point.y,
         });
 
         syncJson();
@@ -927,7 +985,7 @@ if (selectedMoveTarget.type === "window") {
 
   async function loadMockPlan() {
     const response = await fetch("/api/mock-plan", {
-      cache: "no-store"
+      cache: "no-store",
     });
 
     const data = await response.json();
@@ -954,7 +1012,7 @@ if (selectedMoveTarget.type === "window") {
       const response = await fetch("/api/generate-from-text", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify({ prompt }),
       });
 
       const data = await response.json();
@@ -1124,7 +1182,10 @@ if (selectedMoveTarget.type === "window") {
     applyAllSelectedUi();
 
     if (allSelected) {
-      setStatus("Усі елементи виділено. Можна рухати кнопками справа внизу.", "ok");
+      setStatus(
+        "Усі елементи виділено. Можна рухати кнопками справа внизу.",
+        "ok",
+      );
     } else {
       setStatus("Виділення всіх елементів скасовано.", "info");
     }
